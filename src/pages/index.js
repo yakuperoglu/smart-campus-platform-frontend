@@ -1,55 +1,47 @@
-import { useEffect, useState } from 'react';
-import Head from 'next/head';
+/**
+ * Home Page - Redirects to appropriate page based on auth status
+ */
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/router';
+import { useAuth } from '../context/AuthContext';
 
 export default function Home() {
-  const [apiStatus, setApiStatus] = useState('Checking...');
+  const router = useRouter();
+  const { user, loading } = useAuth();
 
   useEffect(() => {
-    const checkApi = async () => {
-      try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/health`);
-        const data = await response.json();
-        setApiStatus(data.status === 'ok' ? 'Connected ✅' : 'Error ❌');
-      } catch (error) {
-        setApiStatus('Disconnected ❌');
+    if (!loading) {
+      if (user) {
+        router.push('/dashboard');
+      } else {
+        router.push('/login');
       }
-    };
-
-    checkApi();
-  }, []);
+    }
+  }, [user, loading, router]);
 
   return (
-    <>
-      <Head>
-        <title>Smart Campus Platform</title>
-        <meta name="description" content="Akıllı Kampüs Platformu" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
-      <main style={{ 
-        minHeight: '100vh', 
-        display: 'flex', 
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '2rem'
-      }}>
-        <h1 style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>
-          Smart Campus Platform
-        </h1>
-        <p style={{ fontSize: '1.2rem', marginBottom: '2rem', color: '#666' }}>
-          Akıllı Kampüs Platformu
-        </p>
-        <div style={{ 
-          padding: '1rem 2rem', 
-          backgroundColor: '#f0f0f0', 
-          borderRadius: '8px',
-          fontSize: '1rem'
-        }}>
-          <strong>Backend API Status:</strong> {apiStatus}
-        </div>
-      </main>
-    </>
+    <div style={{ 
+      display: 'flex', 
+      justifyContent: 'center', 
+      alignItems: 'center', 
+      minHeight: '100vh' 
+    }}>
+      <div className="spinner"></div>
+      <style jsx>{`
+        .spinner {
+          width: 50px;
+          height: 50px;
+          border: 4px solid #e2e8f0;
+          border-top: 4px solid #667eea;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
+    </div>
   );
 }
-
