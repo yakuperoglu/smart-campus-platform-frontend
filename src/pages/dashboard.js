@@ -32,6 +32,7 @@ export default function Dashboard() {
     if (user) {
       fetchUserData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, authLoading, router]);
 
   const handleLogout = async () => {
