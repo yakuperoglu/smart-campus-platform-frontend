@@ -11,29 +11,39 @@ import { useAuth } from '../context/AuthContext';
 export default function Dashboard() {
   const router = useRouter();
   const { user, logout, getCurrentUser, loading: authLoading } = useAuth();
-  const [userData, setUserData] = useState(user);
-  const [loading, setLoading] = useState(false);
+  const [userData, setUserData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [hasFetched, setHasFetched] = useState(false);
 
+  // Redirect if not authenticated
   useEffect(() => {
     if (!authLoading && !user) {
       router.push('/login');
-      return;
     }
+  }, [authLoading, user, router]);
 
-    const fetchUserData = async () => {
-      setLoading(true);
-      const result = await getCurrentUser();
-      if (result.success) {
-        setUserData(result.user);
+  // Fetch full user profile ONLY ONCE when user is available
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (user && !hasFetched && !authLoading) {
+        setLoading(true);
+        const result = await getCurrentUser();
+        if (result.success) {
+          setUserData(result.user);
+        } else {
+          // Fallback to basic user if fetch fails
+          setUserData(user);
+        }
+        setHasFetched(true);
+        setLoading(false);
+      } else if (!user && !authLoading) {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
-    if (user) {
-      fetchUserData();
-    }
+    fetchProfile();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, authLoading, router]);
+  }, [user, authLoading]); // Only when user or authLoading changes, but hasFetched prevents re-runs
 
   const handleLogout = async () => {
     await logout();
@@ -61,7 +71,7 @@ export default function Dashboard() {
     );
   }
 
-  if (!user) {
+  if (!user || !userData) {
     return null;
   }
 
