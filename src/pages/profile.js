@@ -226,8 +226,9 @@ export default function Profile() {
       console.error('Password change error:', error);
       setMessage({
         type: 'error',
-        text: error.response?.data?.message || 'Failed to change password'
+        text: error.response?.data?.error?.message || error.response?.data?.message || 'Failed to change password'
       });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setSaving(false);
     }
