@@ -27,6 +27,13 @@ export default function Profile() {
     address: '',
   });
 
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+
+
   // Redirect if not authenticated
   useEffect(() => {
     if (!authLoading && !user) {
@@ -361,6 +368,60 @@ export default function Profile() {
             </form>
           </div>
 
+
+          {/* Change Password Section */}
+          <div className="profile-form-section">
+            <h3>Security (Change Password)</h3>
+            <form onSubmit={handleChangePassword}>
+              <div className="form-grid">
+                <div className="form-group full-width">
+                  <label htmlFor="currentPassword">Current Password</label>
+                  <input
+                    type="password"
+                    id="currentPassword"
+                    name="currentPassword"
+                    value={passwordData.currentPassword}
+                    onChange={handlePasswordChange}
+                    placeholder="Enter current password"
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="newPassword">New Password</label>
+                  <input
+                    type="password"
+                    id="newPassword"
+                    name="newPassword"
+                    value={passwordData.newPassword}
+                    onChange={handlePasswordChange}
+                    placeholder="Min 8 chars, mixed case & special"
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="confirmPassword">Confirm New Password</label>
+                  <input
+                    type="password"
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    value={passwordData.confirmPassword}
+                    onChange={handlePasswordChange}
+                    placeholder="Re-type new password"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="form-actions">
+                <button type="submit" className="btn-save" disabled={saving} style={{ backgroundColor: '#e67e22' }}>
+                  {saving ? 'Updating...' : 'Update Password'}
+                </button>
+              </div>
+            </form>
+          </div>
+
           {/* Role-Specific Information */}
           {userData.profile && (
             <div className="role-info-section">
@@ -418,7 +479,7 @@ export default function Profile() {
             </div>
           )}
         </div>
-      </div>
+      </div >
 
       <style jsx>{`
         .profile-container {
