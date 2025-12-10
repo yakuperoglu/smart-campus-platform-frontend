@@ -210,7 +210,8 @@ export default function Profile() {
     try {
       const response = await api.post('/users/me/change-password', {
         currentPassword: passwordData.currentPassword,
-        newPassword: passwordData.newPassword
+        newPassword: passwordData.newPassword,
+        confirmPassword: passwordData.confirmPassword
       });
 
       if (response.data.success) {
