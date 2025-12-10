@@ -113,7 +113,7 @@ export default function Profile() {
     setMessage({ type: '', text: '' });
 
     const formData = new FormData();
-    formData.append('profilePicture', file);
+    formData.append('profile_picture', file);
 
     try {
       const response = await api.post('/users/me/profile-picture', formData, {
@@ -169,6 +169,19 @@ export default function Profile() {
     }
   };
 
+  // Helper to get full image URL
+  const getImageUrl = (url) => {
+    if (!url) return null;
+    if (url.startsWith('http')) return url;
+
+    // Use environment variable for base URL if available
+    const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000/api/v1';
+    // Remove /api/v1 suffix to get root URL for static files
+    const rootUrl = apiBase.replace(/\/api\/v1\/?$/, '');
+
+    return `${rootUrl}${url}`;
+  };
+
   if (authLoading || loading) {
     return (
       <div className="profile-container">
@@ -220,7 +233,7 @@ export default function Profile() {
             <div className="picture-upload-container">
               <div className="current-picture">
                 {userData.profile_picture_url ? (
-                  <img src={userData.profile_picture_url} alt="Profile" />
+                  <img src={getImageUrl(userData.profile_picture_url)} alt="Profile" />
                 ) : (
                   <div className="avatar-placeholder-large">
                     {userData.email?.charAt(0).toUpperCase()}
