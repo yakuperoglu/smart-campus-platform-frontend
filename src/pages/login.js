@@ -97,6 +97,19 @@ export default function Login() {
               />
             </div>
 
+            <div className="form-group">
+              <Link href="/forgot-password" style={{
+                fontSize: '0.9rem',
+                color: '#3498db',
+                textDecoration: 'none',
+                display: 'block',
+                marginTop: '5px',
+                textAlign: 'right'
+              }}>
+                Forgot Password?
+              </Link>
+            </div>
+
             <button type="submit" className="btn-primary" disabled={loading}>
               {loading ? 'Signing in...' : 'Sign In'}
             </button>

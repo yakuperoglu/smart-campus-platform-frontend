@@ -27,6 +27,13 @@ export default function Profile() {
     address: '',
   });
 
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+
+
   // Redirect if not authenticated
   useEffect(() => {
     if (!authLoading && !user) {
@@ -57,7 +64,8 @@ export default function Profile() {
     };
 
     fetchProfile();
-  }, [user, authLoading, hasFetched]); // Removed getCurrentUser from deps to prevent loop, added hasFetched
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, authLoading, hasFetched]); // getCurrentUser intentionally excluded to prevent infinite loop
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -181,6 +189,60 @@ export default function Profile() {
 
     return `${rootUrl}${url}`;
   };
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    setMessage({ type: '', text: '' });
+
+    // Client-side validation
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setMessage({ type: 'error', text: 'New passwords do not match' });
+      setSaving(false);
+      return;
+    }
+
+    if (passwordData.newPassword.length < 8) {
+      setMessage({ type: 'error', text: 'Password must be at least 8 characters long' });
+      setSaving(false);
+      return;
+    }
+
+    try {
+      const response = await api.post('/users/me/change-password', {
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword,
+        confirmPassword: passwordData.confirmPassword
+      });
+
+      if (response.data.success) {
+        setMessage({ type: 'success', text: 'Password changed successfully!' });
+        setPasswordData({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        });
+      }
+    } catch (error) {
+      console.error('Password change error:', error);
+      setMessage({
+        type: 'error',
+        text: error.response?.data?.error?.message || error.response?.data?.message || 'Failed to change password'
+      });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handlePasswordChange = (e) => {
+    const { name, value } = e.target;
+    setPasswordData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
 
   if (authLoading || loading) {
     return (
@@ -361,6 +423,60 @@ export default function Profile() {
             </form>
           </div>
 
+
+          {/* Change Password Section */}
+          <div className="profile-form-section">
+            <h3>Security (Change Password)</h3>
+            <form onSubmit={handleChangePassword}>
+              <div className="form-grid">
+                <div className="form-group full-width">
+                  <label htmlFor="currentPassword">Current Password</label>
+                  <input
+                    type="password"
+                    id="currentPassword"
+                    name="currentPassword"
+                    value={passwordData.currentPassword}
+                    onChange={handlePasswordChange}
+                    placeholder="Enter current password"
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="newPassword">New Password</label>
+                  <input
+                    type="password"
+                    id="newPassword"
+                    name="newPassword"
+                    value={passwordData.newPassword}
+                    onChange={handlePasswordChange}
+                    placeholder="Min 8 chars, mixed case & special"
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="confirmPassword">Confirm New Password</label>
+                  <input
+                    type="password"
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    value={passwordData.confirmPassword}
+                    onChange={handlePasswordChange}
+                    placeholder="Re-type new password"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="form-actions">
+                <button type="submit" className="btn-save" disabled={saving} style={{ backgroundColor: '#e67e22' }}>
+                  {saving ? 'Updating...' : 'Update Password'}
+                </button>
+              </div>
+            </form>
+          </div>
+
           {/* Role-Specific Information */}
           {userData.profile && (
             <div className="role-info-section">
@@ -418,7 +534,7 @@ export default function Profile() {
             </div>
           )}
         </div>
-      </div>
+      </div >
 
       <style jsx>{`
         .profile-container {
