@@ -64,7 +64,8 @@ export default function Profile() {
     };
 
     fetchProfile();
-  }, [user, authLoading, hasFetched]); // Removed getCurrentUser from deps to prevent loop, added hasFetched
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, authLoading, hasFetched]); // getCurrentUser intentionally excluded to prevent infinite loop
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
