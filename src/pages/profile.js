@@ -189,6 +189,58 @@ export default function Profile() {
     return `${rootUrl}${url}`;
   };
 
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    setMessage({ type: '', text: '' });
+
+    // Client-side validation
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setMessage({ type: 'error', text: 'New passwords do not match' });
+      setSaving(false);
+      return;
+    }
+
+    if (passwordData.newPassword.length < 8) {
+      setMessage({ type: 'error', text: 'Password must be at least 8 characters long' });
+      setSaving(false);
+      return;
+    }
+
+    try {
+      const response = await api.post('/users/me/change-password', {
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword
+      });
+
+      if (response.data.success) {
+        setMessage({ type: 'success', text: 'Password changed successfully!' });
+        setPasswordData({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        });
+      }
+    } catch (error) {
+      console.error('Password change error:', error);
+      setMessage({
+        type: 'error',
+        text: error.response?.data?.message || 'Failed to change password'
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handlePasswordChange = (e) => {
+    const { name, value } = e.target;
+    setPasswordData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+
   if (authLoading || loading) {
     return (
       <div className="profile-container">
