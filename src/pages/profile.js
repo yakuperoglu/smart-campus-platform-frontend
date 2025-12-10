@@ -113,7 +113,7 @@ export default function Profile() {
     setMessage({ type: '', text: '' });
 
     const formData = new FormData();
-    formData.append('profilePicture', file);
+    formData.append('profile_picture', file);
 
     try {
       const response = await api.post('/users/me/profile-picture', formData, {
