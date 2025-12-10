@@ -23,6 +23,10 @@ COPY --from=deps /app/node_modules ./node_modules
 # Copy application files
 COPY . .
 
+# Accept build argument for API URL
+ARG NEXT_PUBLIC_API_BASE_URL=http://localhost:3000/api/v1
+ENV NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
+
 # Set environment variable for build
 ENV NEXT_TELEMETRY_DISABLED 1
 
