@@ -173,8 +173,13 @@ export default function Profile() {
   const getImageUrl = (url) => {
     if (!url) return null;
     if (url.startsWith('http')) return url;
-    // Assume backend is on localhost:3000 if relative path
-    return `http://localhost:3000${url}`;
+
+    // Use environment variable for base URL if available
+    const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000/api/v1';
+    // Remove /api/v1 suffix to get root URL for static files
+    const rootUrl = apiBase.replace(/\/api\/v1\/?$/, '');
+
+    return `${rootUrl}${url}`;
   };
 
   if (authLoading || loading) {

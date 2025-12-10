@@ -64,7 +64,11 @@ export default function Dashboard() {
   const getImageUrl = (url) => {
     if (!url) return null;
     if (url.startsWith('http')) return url;
-    return `http://localhost:3000${url}`;
+
+    const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000/api/v1';
+    const rootUrl = apiBase.replace(/\/api\/v1\/?$/, '');
+
+    return `${rootUrl}${url}`;
   };
 
   if (authLoading || loading) {
