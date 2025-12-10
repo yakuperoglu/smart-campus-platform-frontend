@@ -15,6 +15,7 @@ export default function Profile() {
 
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [hasFetched, setHasFetched] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
@@ -33,10 +34,10 @@ export default function Profile() {
     }
   }, [authLoading, user, router]);
 
-  // Fetch user profile
+  // Fetch user profile ONLY ONCE when user is available
   useEffect(() => {
     const fetchProfile = async () => {
-      if (user && !authLoading) {
+      if (user && !hasFetched && !authLoading) {
         setLoading(true);
         const result = await getCurrentUser();
         if (result.success) {
@@ -48,12 +49,15 @@ export default function Profile() {
             address: result.user.address || '',
           });
         }
+        setHasFetched(true);
+        setLoading(false);
+      } else if (!user && !authLoading) {
         setLoading(false);
       }
     };
 
     fetchProfile();
-  }, [user, authLoading, getCurrentUser]);
+  }, [user, authLoading, hasFetched]); // Removed getCurrentUser from deps to prevent loop, added hasFetched
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
