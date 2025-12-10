@@ -169,6 +169,14 @@ export default function Profile() {
     }
   };
 
+  // Helper to get full image URL
+  const getImageUrl = (url) => {
+    if (!url) return null;
+    if (url.startsWith('http')) return url;
+    // Assume backend is on localhost:3000 if relative path
+    return `http://localhost:3000${url}`;
+  };
+
   if (authLoading || loading) {
     return (
       <div className="profile-container">
@@ -220,7 +228,7 @@ export default function Profile() {
             <div className="picture-upload-container">
               <div className="current-picture">
                 {userData.profile_picture_url ? (
-                  <img src={userData.profile_picture_url} alt="Profile" />
+                  <img src={getImageUrl(userData.profile_picture_url)} alt="Profile" />
                 ) : (
                   <div className="avatar-placeholder-large">
                     {userData.email?.charAt(0).toUpperCase()}

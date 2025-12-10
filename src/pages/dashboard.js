@@ -61,6 +61,12 @@ export default function Dashboard() {
     return colors[role] || '#95a5a6';
   };
 
+  const getImageUrl = (url) => {
+    if (!url) return null;
+    if (url.startsWith('http')) return url;
+    return `http://localhost:3000${url}`;
+  };
+
   if (authLoading || loading) {
     return (
       <div className="dashboard-container">
@@ -94,7 +100,7 @@ export default function Dashboard() {
                 onClick={() => setShowProfileMenu(!showProfileMenu)}
               >
                 {userData?.profile_picture_url ? (
-                  <img src={userData.profile_picture_url} alt="Profile" className="nav-avatar" />
+                  <img src={getImageUrl(userData.profile_picture_url)} alt="Profile" className="nav-avatar" />
                 ) : (
                   <div className="nav-avatar-placeholder">
                     {userData?.email?.charAt(0).toUpperCase()}
@@ -159,7 +165,7 @@ export default function Dashboard() {
           <div className="user-card">
             <div className="user-avatar">
               {userData?.profile_picture_url ? (
-                <img src={userData.profile_picture_url} alt="Profile" />
+                <img src={getImageUrl(userData.profile_picture_url)} alt="Profile" />
               ) : (
                 <div className="avatar-placeholder">
                   {userData?.email?.charAt(0).toUpperCase()}
