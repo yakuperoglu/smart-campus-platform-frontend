@@ -14,6 +14,7 @@ export default function Dashboard() {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [hasFetched, setHasFetched] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -87,9 +88,65 @@ export default function Dashboard() {
             <h1>🎓 Smart Campus</h1>
           </div>
           <div className="nav-actions">
-            <button onClick={handleLogout} className="btn-logout">
-              Logout
-            </button>
+            <div className="profile-menu-container">
+              <button
+                className="profile-menu-button"
+                onClick={() => setShowProfileMenu(!showProfileMenu)}
+              >
+                {userData?.profile_picture_url ? (
+                  <img src={userData.profile_picture_url} alt="Profile" className="nav-avatar" />
+                ) : (
+                  <div className="nav-avatar-placeholder">
+                    {userData?.email?.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <span className="profile-name">
+                  {userData?.first_name || userData?.email?.split('@')[0]}
+                </span>
+                <span className="dropdown-arrow">▼</span>
+              </button>
+
+              {showProfileMenu && (
+                <div className="profile-dropdown">
+                  <div className="dropdown-header">
+                    <p className="dropdown-email">{userData?.email}</p>
+                    <span className="dropdown-role">{userData?.role?.toUpperCase()}</span>
+                  </div>
+                  <div className="dropdown-divider"></div>
+                  <button
+                    className="dropdown-item"
+                    onClick={() => {
+                      setShowProfileMenu(false);
+                      router.push('/profile');
+                    }}
+                  >
+                    <span className="item-icon">👤</span>
+                    My Profile
+                  </button>
+                  <button
+                    className="dropdown-item"
+                    onClick={() => {
+                      setShowProfileMenu(false);
+                      // Settings page (future)
+                    }}
+                  >
+                    <span className="item-icon">⚙️</span>
+                    Settings
+                  </button>
+                  <div className="dropdown-divider"></div>
+                  <button
+                    className="dropdown-item logout-item"
+                    onClick={() => {
+                      setShowProfileMenu(false);
+                      handleLogout();
+                    }}
+                  >
+                    <span className="item-icon">🚪</span>
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </nav>
 
@@ -109,11 +166,11 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
-            
+
             <div className="user-info">
               <h3>{userData?.email}</h3>
-              <span 
-                className="role-badge" 
+              <span
+                className="role-badge"
                 style={{ backgroundColor: getRoleBadgeColor(userData?.role) }}
               >
                 {userData?.role?.toUpperCase()}
