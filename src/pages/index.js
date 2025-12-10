@@ -60,6 +60,9 @@ export default function Home() {
             🎓 Student Campus
           </div>
           <nav className="landing-nav">
+            <Link href="/about" className="btn-nav btn-about">
+              Hakkımızda
+            </Link>
             <Link href="/login" className="btn-nav btn-login">
               Giriş Yap
             </Link>

@@ -53,6 +53,24 @@
   font-size: 0.95rem;
 }
 
+.btn-about {
+  color: #1e40af;
+  background: transparent;
+  border: none;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+}
+
+.btn-about:hover {
+  color: #1e3a8a;
+  transform: translateY(-2px);
+}
+
+.btn-about.active {
+  color: #1e3a8a;
+  font-weight: 600;
+}
+
 .btn-login {
   color: #1e40af;
   background: transparent;
