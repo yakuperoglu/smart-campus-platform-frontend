@@ -40,10 +40,9 @@ export default function Register() {
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
-        const response = await fetch('http://localhost:3000/api/v1/departments');
-        if (response.ok) {
-          const data = await response.json();
-          setDepartments(data.data || []);
+        const response = await api.get('/departments');
+        if (response.data && response.data.data) {
+          setDepartments(response.data.data || []);
         }
       } catch (err) {
         console.error('Failed to fetch departments:', err);

@@ -110,8 +110,12 @@ export default function Login() {
 
           <div className="demo-credentials">
             <p className="demo-title">Demo Credentials:</p>
-            <p>📧 admin@smartcampus.edu / admin123</p>
-            <p>📧 student1@smartcampus.edu / student123</p>
+            <p>👑 Admin: admin@smartcampus.edu / admin123</p>
+            <p>👨‍🏫 Öğretim: john.doe@smartcampus.edu / faculty123</p>
+            <p>👨‍🏫 Öğretim: jane.smith@smartcampus.edu / faculty123</p>
+            <p>👨‍🎓 Öğrenci: student1@smartcampus.edu / student123</p>
+            <p>👨‍🎓 Öğrenci: student2@smartcampus.edu / student123</p>
+            <p>👨‍🎓 Öğrenci: student3@smartcampus.edu / student123</p>
           </div>
         </div>
       </div>
