@@ -40,12 +40,20 @@ export default function Register() {
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
+        console.log('Fetching departments...');
         const response = await api.get('/departments');
+        console.log('Departments response:', response.data);
         if (response.data && response.data.data) {
           setDepartments(response.data.data || []);
+          console.log('Departments loaded:', response.data.data.length);
+        } else if (response.data && Array.isArray(response.data)) {
+          // Alternatif format desteği
+          setDepartments(response.data);
+          console.log('Departments loaded (alt format):', response.data.length);
         }
       } catch (err) {
         console.error('Failed to fetch departments:', err);
+        console.error('Error details:', err.response?.data || err.message);
       }
     };
     fetchDepartments();

@@ -203,11 +203,11 @@ export default function Dashboard() {
                     </div>
                     <div className="profile-item">
                       <span className="label">GPA:</span>
-                      <span className="value">{userData.profile.gpa ? Number(userData.profile.gpa).toFixed(2) : 'N/A'}</span>
+                      <span className="value">{userData.profile.gpa != null ? (Number(userData.profile.gpa) || 0).toFixed(2) : 'N/A'}</span>
                     </div>
                     <div className="profile-item">
                       <span className="label">CGPA:</span>
-                      <span className="value">{userData.profile.cgpa ? Number(userData.profile.cgpa).toFixed(2) : 'N/A'}</span>
+                      <span className="value">{userData.profile.cgpa != null ? (Number(userData.profile.cgpa) || 0).toFixed(2) : 'N/A'}</span>
                     </div>
                     {userData.profile.department && (
                       <div className="profile-item">
@@ -248,7 +248,7 @@ export default function Dashboard() {
               <div className="wallet-card">
                 <div className="wallet-balance">
                   <span className="currency">{userData.wallet.currency}</span>
-                  <span className="amount">{parseFloat(userData.wallet.balance).toFixed(2)}</span>
+                  <span className="amount">{(parseFloat(userData.wallet.balance) || 0).toFixed(2)}</span>
                 </div>
                 <p className="wallet-status">
                   Status: {userData.wallet.is_active ? '✅ Active' : '⛔ Inactive'}
