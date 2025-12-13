@@ -8,7 +8,7 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Head from 'next/head';
 import { useAuth } from '../context/AuthContext';
-import api from '../services/api';
+import api from '../config/api';
 
 export default function Register() {
   const router = useRouter();

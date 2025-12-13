@@ -6,9 +6,9 @@
 import Head from 'next/head';
 import { AuthProvider } from '../context/AuthContext';
 import '../styles/globals.css';
-import './Auth.css';
-import './Dashboard.css';
-import './Landing.css';
+import '../styles/Auth.css';
+import '../styles/Dashboard.css';
+import '../styles/Landing.css';
 
 export default function App({ Component, pageProps }) {
   return (

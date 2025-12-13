@@ -1,0 +1,33 @@
+# ============================================
+# SMART CAMPUS FRONTEND - Docker Compose
+# ============================================
+# Usage: docker-compose up -d
+# Development: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+services:
+  # Frontend Application
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:3000/api/v1}
+    container_name: smart-campus-frontend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:3000/api/v1}
+    ports:
+      - "${FRONTEND_PORT:-3001}:3000"
+    networks:
+      - smart-campus-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+networks:
+  smart-campus-network:
+    driver: bridge

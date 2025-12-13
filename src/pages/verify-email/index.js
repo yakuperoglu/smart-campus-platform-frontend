@@ -1,6 +1,6 @@
 /**
- * Email Verification Page (Path Version)
- * Handles /verify-email/TOKEN format
+ * Email Verification Page (Query String Version)
+ * Handles /verify-email?token=xxx format
  */
 
 import { useState, useEffect } from 'react';
@@ -9,16 +9,23 @@ import Head from 'next/head';
 import Link from 'next/link';
 import api from '../../config/api';
 
-export default function VerifyEmailPath() {
+export default function VerifyEmailQuery() {
     const router = useRouter();
     const { token } = router.query;
 
-    const [status, setStatus] = useState('verifying');
+    const [status, setStatus] = useState('verifying'); // verifying, success, error
     const [message, setMessage] = useState('E-posta adresiniz doğrulanıyor...');
     const [countdown, setCountdown] = useState(5);
 
     useEffect(() => {
-        if (!router.isReady || !token) return;
+        if (!router.isReady) return;
+        
+        // Token yoksa hata göster
+        if (!token) {
+            setStatus('error');
+            setMessage('Geçersiz doğrulama linki. Token bulunamadı.');
+            return;
+        }
 
         const verifyEmail = async () => {
             try {
@@ -26,6 +33,7 @@ export default function VerifyEmailPath() {
                 setStatus('success');
                 setMessage('E-posta adresiniz başarıyla doğrulandı! Giriş sayfasına yönlendiriliyorsunuz.');
 
+                // Start countdown to redirect
                 const timer = setInterval(() => {
                     setCountdown((prev) => {
                         if (prev <= 1) {
@@ -44,7 +52,7 @@ export default function VerifyEmailPath() {
                 setStatus('error');
                 const errorMessage = error.response?.data?.error?.message || 
                                     error.response?.data?.message || 
-                                    'Geçersiz veya süresi dolmuş doğrulama token\'ı.';
+                                    'Geçersiz veya süresi dolmuş doğrulama token\'ı. Lütfen yeni bir doğrulama e-postası isteyin.';
                 setMessage(errorMessage);
             }
         };
@@ -129,17 +137,32 @@ export default function VerifyEmailPath() {
                     )}
 
                     {status === 'error' && (
-                        <Link href="/login" style={{
-                            display: 'inline-block',
-                            padding: '14px 28px',
-                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                            color: 'white',
-                            textDecoration: 'none',
-                            borderRadius: '8px',
-                            fontWeight: '600'
-                        }}>
-                            Giriş Sayfasına Git
-                        </Link>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            <Link href="/login" style={{
+                                display: 'inline-block',
+                                padding: '14px 28px',
+                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                color: 'white',
+                                textDecoration: 'none',
+                                borderRadius: '8px',
+                                fontWeight: '600',
+                                transition: 'all 0.3s ease'
+                            }}>
+                                Giriş Sayfasına Git
+                            </Link>
+                            <Link href="/profile" style={{
+                                display: 'inline-block',
+                                padding: '12px 24px',
+                                backgroundColor: 'transparent',
+                                color: '#667eea',
+                                textDecoration: 'none',
+                                borderRadius: '8px',
+                                fontWeight: '500',
+                                border: '2px solid #667eea'
+                            }}>
+                                Yeni Doğrulama E-postası İste
+                            </Link>
+                        </div>
                     )}
                 </div>
             </div>
@@ -153,3 +176,4 @@ export default function VerifyEmailPath() {
         </>
     );
 }
+

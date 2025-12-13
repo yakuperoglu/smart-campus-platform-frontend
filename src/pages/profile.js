@@ -33,6 +33,9 @@ export default function Profile() {
     confirmPassword: ''
   });
 
+  const [sendingVerification, setSendingVerification] = useState(false);
+  const [verificationCooldown, setVerificationCooldown] = useState(0);
+
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -40,6 +43,17 @@ export default function Profile() {
       router.push('/login');
     }
   }, [authLoading, user, router]);
+
+  // Cooldown timer for verification email
+  useEffect(() => {
+    let timer;
+    if (verificationCooldown > 0) {
+      timer = setTimeout(() => {
+        setVerificationCooldown(prev => prev - 1);
+      }, 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [verificationCooldown]);
 
   // Fetch user profile ONLY ONCE when user is available
   useEffect(() => {
@@ -243,6 +257,29 @@ export default function Profile() {
     }));
   };
 
+  const handleResendVerification = async () => {
+    if (verificationCooldown > 0) return;
+    
+    setSendingVerification(true);
+    setMessage({ type: '', text: '' });
+
+    try {
+      const response = await api.post('/auth/resend-verification');
+
+      if (response.data.success) {
+        setMessage({ type: 'success', text: 'Doğrulama e-postası gönderildi! Lütfen e-posta kutunuzu kontrol edin.' });
+        setVerificationCooldown(30); // 30 saniye bekleme süresi
+      }
+    } catch (error) {
+      setMessage({
+        type: 'error',
+        text: error.response?.data?.error?.message || 'Doğrulama e-postası gönderilemedi'
+      });
+    } finally {
+      setSendingVerification(false);
+    }
+  };
+
 
   if (authLoading || loading) {
     return (
@@ -286,6 +323,42 @@ export default function Profile() {
           {message.text && (
             <div className={`message ${message.type}`}>
               {message.text}
+            </div>
+          )}
+
+          {/* Email Verification Section */}
+          {userData && !userData.is_verified && (
+            <div className="verification-section">
+              <div className="verification-warning">
+                <span className="warning-icon">⚠️</span>
+                <div className="warning-content">
+                  <h4>E-posta Doğrulanmadı</h4>
+                  <p>E-posta adresiniz henüz doğrulanmadı. Bazı özelliklerden tam olarak yararlanmak için lütfen e-postanızı doğrulayın.</p>
+                </div>
+                <button 
+                  onClick={handleResendVerification} 
+                  className="btn-verify"
+                  disabled={sendingVerification || verificationCooldown > 0}
+                >
+                  {sendingVerification 
+                    ? 'Gönderiliyor...' 
+                    : verificationCooldown > 0 
+                      ? `Tekrar Gönder (${verificationCooldown}s)` 
+                      : 'Doğrulama E-postası Gönder'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {userData && userData.is_verified && (
+            <div className="verification-section verified">
+              <div className="verification-success">
+                <span className="success-icon">✅</span>
+                <div className="success-content">
+                  <h4>E-posta Doğrulandı</h4>
+                  <p>E-posta adresiniz başarıyla doğrulandı.</p>
+                </div>
+              </div>
             </div>
           )}
 
@@ -614,6 +687,99 @@ export default function Profile() {
           border: 1px solid #f5c6cb;
         }
 
+        .verification-section {
+          background: white;
+          border-radius: 12px;
+          padding: 1.5rem 2rem;
+          margin-bottom: 1.5rem;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .verification-warning {
+          display: flex;
+          align-items: center;
+          gap: 1.5rem;
+          background: linear-gradient(135deg, #fff3cd 0%, #ffeeba 100%);
+          padding: 1rem 1.5rem;
+          border-radius: 10px;
+          border-left: 4px solid #ffc107;
+        }
+
+        .warning-icon {
+          font-size: 2rem;
+          flex-shrink: 0;
+        }
+
+        .warning-content {
+          flex: 1;
+        }
+
+        .warning-content h4 {
+          margin: 0 0 0.3rem 0;
+          color: #856404;
+          font-size: 1.1rem;
+        }
+
+        .warning-content p {
+          margin: 0;
+          color: #856404;
+          font-size: 0.9rem;
+        }
+
+        .btn-verify {
+          background: #ffc107;
+          color: #212529;
+          border: none;
+          padding: 0.7rem 1.5rem;
+          border-radius: 8px;
+          cursor: pointer;
+          font-size: 0.95rem;
+          font-weight: 600;
+          transition: all 0.3s ease;
+          white-space: nowrap;
+        }
+
+        .btn-verify:hover:not([disabled]) {
+          background: #e0a800;
+          transform: translateY(-2px);
+        }
+
+        .btn-verify[disabled] {
+          opacity: 0.7;
+          cursor: not-allowed;
+        }
+
+        .verification-success {
+          display: flex;
+          align-items: center;
+          gap: 1.5rem;
+          background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+          padding: 1rem 1.5rem;
+          border-radius: 10px;
+          border-left: 4px solid #28a745;
+        }
+
+        .success-icon {
+          font-size: 2rem;
+          flex-shrink: 0;
+        }
+
+        .success-content {
+          flex: 1;
+        }
+
+        .success-content h4 {
+          margin: 0 0 0.3rem 0;
+          color: #155724;
+          font-size: 1.1rem;
+        }
+
+        .success-content p {
+          margin: 0;
+          color: #155724;
+          font-size: 0.9rem;
+        }
+
         .profile-picture-section,
         .profile-form-section,
         .role-info-section {
@@ -878,6 +1044,17 @@ export default function Profile() {
 
           .nav-brand h1 {
             font-size: 1.2rem;
+          }
+
+          .verification-warning,
+          .verification-success {
+            flex-direction: column;
+            text-align: center;
+          }
+
+          .btn-verify {
+            width: 100%;
+            margin-top: 0.5rem;
           }
         }
       `}</style>
