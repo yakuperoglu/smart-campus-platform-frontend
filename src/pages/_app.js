@@ -9,6 +9,7 @@ import '../styles/globals.css';
 import '../styles/Auth.css';
 import '../styles/Dashboard.css';
 import '../styles/Landing.css';
+import '../styles/Courses.css';
 
 export default function App({ Component, pageProps }) {
   return (
