@@ -3,10 +3,13 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { useAuth } from '../context/AuthContext';
 
-const Navbar = ({ userData }) => {
+const Navbar = ({ userData: propUserData }) => {
     const router = useRouter();
-    const { logout } = useAuth();
+    const { logout, user: authUser } = useAuth();
     const [showProfileMenu, setShowProfileMenu] = useState(false);
+    
+    // Use prop userData if provided, otherwise use auth context user
+    const userData = propUserData || authUser;
 
     const handleLogout = async () => {
         await logout();
@@ -58,7 +61,7 @@ const Navbar = ({ userData }) => {
                     >
                         {renderAvatar()}
                         <span className="profile-name">
-                            {userData?.first_name || userData?.email?.split('@')[0]}
+                            {userData?.first_name || userData?.email?.split('@')[0] || userData?.email || 'Kullanıcı'}
                         </span>
                         <span className="dropdown-arrow">▼</span>
                     </button>

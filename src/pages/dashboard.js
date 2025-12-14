@@ -197,12 +197,30 @@ export default function Dashboard() {
               </div>
             </Link>
 
-            <div className="feature-card">
-              <div className="feature-icon">✅</div>
-              <h4>Attendance</h4>
-              <p>GPS-based attendance system</p>
-              <span className="coming-soon">Coming Soon</span>
-            </div>
+            {userData?.role === 'student' ? (
+              <Link href="/attendance" style={{ textDecoration: 'none' }} prefetch={false}>
+                <div className="feature-card" style={{ cursor: 'pointer' }}>
+                  <div className="feature-icon">📍</div>
+                  <h4>Yoklama Ver</h4>
+                  <p>GPS tabanlı yoklama verme</p>
+                </div>
+              </Link>
+            ) : userData?.role === 'faculty' ? (
+              <Link href="/attendance-open" style={{ textDecoration: 'none' }} prefetch={false}>
+                <div className="feature-card" style={{ cursor: 'pointer' }}>
+                  <div className="feature-icon">📋</div>
+                  <h4>Yoklama Aç</h4>
+                  <p>GPS tabanlı yoklama oturumu açma</p>
+                </div>
+              </Link>
+            ) : (
+              <div className="feature-card">
+                <div className="feature-icon">✅</div>
+                <h4>Attendance</h4>
+                <p>GPS-based attendance system</p>
+                <span className="coming-soon">Coming Soon</span>
+              </div>
+            )}
 
             <div className="feature-card">
               <div className="feature-icon">🍽️</div>
