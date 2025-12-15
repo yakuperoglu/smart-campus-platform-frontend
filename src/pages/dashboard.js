@@ -6,7 +6,9 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+import Link from 'next/link';
 import { useAuth } from '../context/AuthContext';
+import Navbar from '../components/Navbar';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -14,7 +16,6 @@ export default function Dashboard() {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [hasFetched, setHasFetched] = useState(false);
-  const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -45,11 +46,6 @@ export default function Dashboard() {
     fetchProfile();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, authLoading]); // Only when user or authLoading changes, but hasFetched prevents re-runs
-
-  const handleLogout = async () => {
-    await logout();
-    router.push('/login');
-  };
 
   const getRoleBadgeColor = (role) => {
     const colors = {
@@ -93,72 +89,7 @@ export default function Dashboard() {
       </Head>
 
       <div className="dashboard-container">
-        <nav className="dashboard-nav">
-          <div className="nav-brand">
-            <h1>🎓 Smart Campus</h1>
-          </div>
-          <div className="nav-actions">
-            <div className="profile-menu-container">
-              <button
-                className="profile-menu-button"
-                onClick={() => setShowProfileMenu(!showProfileMenu)}
-              >
-                {userData?.profile_picture_url ? (
-                  <img src={getImageUrl(userData.profile_picture_url)} alt="Profile" className="nav-avatar" />
-                ) : (
-                  <div className="nav-avatar-placeholder">
-                    {userData?.email?.charAt(0).toUpperCase()}
-                  </div>
-                )}
-                <span className="profile-name">
-                  {userData?.first_name || userData?.email?.split('@')[0]}
-                </span>
-                <span className="dropdown-arrow">▼</span>
-              </button>
-
-              {showProfileMenu && (
-                <div className="profile-dropdown">
-                  <div className="dropdown-header">
-                    <p className="dropdown-email">{userData?.email}</p>
-                    <span className="dropdown-role">{userData?.role?.toUpperCase()}</span>
-                  </div>
-                  <div className="dropdown-divider"></div>
-                  <button
-                    className="dropdown-item"
-                    onClick={() => {
-                      setShowProfileMenu(false);
-                      router.push('/profile');
-                    }}
-                  >
-                    <span className="item-icon">👤</span>
-                    My Profile
-                  </button>
-                  <button
-                    className="dropdown-item"
-                    onClick={() => {
-                      setShowProfileMenu(false);
-                      // Settings page (future)
-                    }}
-                  >
-                    <span className="item-icon">⚙️</span>
-                    Settings
-                  </button>
-                  <div className="dropdown-divider"></div>
-                  <button
-                    className="dropdown-item logout-item"
-                    onClick={() => {
-                      setShowProfileMenu(false);
-                      handleLogout();
-                    }}
-                  >
-                    <span className="item-icon">🚪</span>
-                    Logout
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </nav>
+        <Navbar userData={userData} />
 
         <div className="dashboard-content">
           <div className="welcome-section">
@@ -258,19 +189,38 @@ export default function Dashboard() {
           )}
 
           <div className="features-grid">
-            <div className="feature-card">
-              <div className="feature-icon">📚</div>
-              <h4>Courses</h4>
-              <p>View and manage your courses</p>
-              <span className="coming-soon">Coming Soon</span>
-            </div>
+            <Link href="/courses" style={{ textDecoration: 'none' }} prefetch={false}>
+              <div className="feature-card" style={{ cursor: 'pointer' }}>
+                <div className="feature-icon">📚</div>
+                <h4>Courses</h4>
+                <p>View and manage your courses</p>
+              </div>
+            </Link>
 
-            <div className="feature-card">
-              <div className="feature-icon">✅</div>
-              <h4>Attendance</h4>
-              <p>GPS-based attendance system</p>
-              <span className="coming-soon">Coming Soon</span>
-            </div>
+            {userData?.role === 'student' ? (
+              <Link href="/attendance" style={{ textDecoration: 'none' }} prefetch={false}>
+                <div className="feature-card" style={{ cursor: 'pointer' }}>
+                  <div className="feature-icon">📍</div>
+                  <h4>Yoklama Ver</h4>
+                  <p>GPS tabanlı yoklama verme</p>
+                </div>
+              </Link>
+            ) : userData?.role === 'faculty' ? (
+              <Link href="/attendance-open" style={{ textDecoration: 'none' }} prefetch={false}>
+                <div className="feature-card" style={{ cursor: 'pointer' }}>
+                  <div className="feature-icon">📋</div>
+                  <h4>Yoklama Aç</h4>
+                  <p>GPS tabanlı yoklama oturumu açma</p>
+                </div>
+              </Link>
+            ) : (
+              <div className="feature-card">
+                <div className="feature-icon">✅</div>
+                <h4>Attendance</h4>
+                <p>GPS-based attendance system</p>
+                <span className="coming-soon">Coming Soon</span>
+              </div>
+            )}
 
             <div className="feature-card">
               <div className="feature-icon">🍽️</div>
