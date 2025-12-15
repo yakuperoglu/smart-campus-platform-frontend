@@ -7,13 +7,13 @@ const Navbar = ({ userData: propUserData }) => {
     const router = useRouter();
     const { logout, user: authUser } = useAuth();
     const [showProfileMenu, setShowProfileMenu] = useState(false);
-    
+
     // Use prop userData if provided, otherwise use auth context user
     const userData = propUserData || authUser;
 
     const handleLogout = async () => {
         await logout();
-        // router.push('/login'); // Handled by page effects listening to auth state
+        router.push('/');
     };
 
     const getImageUrl = (url) => {
@@ -61,7 +61,7 @@ const Navbar = ({ userData: propUserData }) => {
                     >
                         {renderAvatar()}
                         <span className="profile-name">
-                            {userData?.first_name || userData?.email?.split('@')[0] || userData?.email || 'Kullanıcı'}
+                            {userData?.first_name || userData?.email?.split('@')[0] || userData?.email || 'User'}
                         </span>
                         <span className="dropdown-arrow">▼</span>
                     </button>
@@ -73,6 +73,24 @@ const Navbar = ({ userData: propUserData }) => {
                                 <span className="dropdown-role">{userData?.role?.toUpperCase()}</span>
                             </div>
                             <div className="dropdown-divider"></div>
+
+                            {/* Admin Panel Link */}
+                            {userData?.role === 'admin' && (
+                                <>
+                                    <button
+                                        className="dropdown-item"
+                                        onClick={() => {
+                                            setShowProfileMenu(false);
+                                            router.push('/admin/courses');
+                                        }}
+                                    >
+                                        <span className="item-icon">⚙️</span>
+                                        Admin Panel
+                                    </button>
+                                    <div className="dropdown-divider"></div>
+                                </>
+                            )}
+
                             <button
                                 className="dropdown-item"
                                 onClick={() => {

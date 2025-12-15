@@ -201,16 +201,16 @@ export default function Dashboard() {
               <Link href="/attendance" style={{ textDecoration: 'none' }} prefetch={false}>
                 <div className="feature-card" style={{ cursor: 'pointer' }}>
                   <div className="feature-icon">📍</div>
-                  <h4>Yoklama Ver</h4>
-                  <p>GPS tabanlı yoklama verme</p>
+                  <h4>Check In</h4>
+                  <p>GPS-based attendance check-in</p>
                 </div>
               </Link>
             ) : userData?.role === 'faculty' ? (
               <Link href="/attendance-open" style={{ textDecoration: 'none' }} prefetch={false}>
                 <div className="feature-card" style={{ cursor: 'pointer' }}>
                   <div className="feature-icon">📋</div>
-                  <h4>Yoklama Aç</h4>
-                  <p>GPS tabanlı yoklama oturumu açma</p>
+                  <h4>Open Attendance</h4>
+                  <p>GPS-based attendance session</p>
                 </div>
               </Link>
             ) : (
@@ -235,6 +235,31 @@ export default function Dashboard() {
               <p>Campus events and activities</p>
               <span className="coming-soon">Coming Soon</span>
             </div>
+
+            {/* Admin-specific cards */}
+            {userData?.role === 'admin' && (
+              <>
+                <Link href="/admin/courses" style={{ textDecoration: 'none' }} prefetch={false}>
+                  <div className="feature-card admin-card" style={{ cursor: 'pointer', borderLeft: '4px solid #e74c3c' }}>
+                    <div className="feature-icon">📚</div>
+                    <h4>Course Management</h4>
+                    <p>Create and manage courses & sections</p>
+                  </div>
+                </Link>
+                <div className="feature-card admin-card" style={{ borderLeft: '4px solid #e74c3c' }}>
+                  <div className="feature-icon">👥</div>
+                  <h4>User Management</h4>
+                  <p>Manage users and roles</p>
+                  <span className="coming-soon">Coming Soon</span>
+                </div>
+                <div className="feature-card admin-card" style={{ borderLeft: '4px solid #e74c3c' }}>
+                  <div className="feature-icon">📊</div>
+                  <h4>Reports</h4>
+                  <p>View system reports and analytics</p>
+                  <span className="coming-soon">Coming Soon</span>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>

@@ -100,14 +100,14 @@ export default function Register() {
 
     // Detailed password validation
     const passwordIssues = [];
-    if (formData.password.length < 8) passwordIssues.push('en az 8 karakter');
-    if (!/[A-Z]/.test(formData.password)) passwordIssues.push('en az 1 büyük harf');
-    if (!/[a-z]/.test(formData.password)) passwordIssues.push('en az 1 küçük harf');
-    if (!/\d/.test(formData.password)) passwordIssues.push('en az 1 rakam');
-    if (!/[@$!%*?&#]/.test(formData.password)) passwordIssues.push('en az 1 özel karakter (@$!%*?&#)');
-    
+    if (formData.password.length < 8) passwordIssues.push('at least 8 characters');
+    if (!/[A-Z]/.test(formData.password)) passwordIssues.push('at least 1 uppercase letter');
+    if (!/[a-z]/.test(formData.password)) passwordIssues.push('at least 1 lowercase letter');
+    if (!/\d/.test(formData.password)) passwordIssues.push('at least 1 number');
+    if (!/[@$!%*?&#]/.test(formData.password)) passwordIssues.push('at least 1 special character (@$!%*?&#)');
+
     if (passwordIssues.length > 0) {
-      setError(`Şifre eksiklikleri: ${passwordIssues.join(', ')}`);
+      setError(`Password requirements: ${passwordIssues.join(', ')}`);
       setLoading(false);
       return;
     }
@@ -156,7 +156,7 @@ export default function Register() {
         title: '',
         department_id: ''
       });
-      
+
       setTimeout(() => {
         router.push('/login');
       }, 3000);
@@ -172,8 +172,22 @@ export default function Register() {
       </Head>
 
       <div className="auth-container">
-        <div className="auth-card register-card">
-          <div className="auth-header">
+        <div className="auth-card register-card" style={{ position: 'relative' }}>
+          <Link href="/" style={{
+            position: 'absolute',
+            top: '15px',
+            left: '15px',
+            fontSize: '1.5rem',
+            color: '#667eea',
+            textDecoration: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '5px',
+            transition: 'transform 0.2s ease'
+          }}>
+            ← <span style={{ fontSize: '0.9rem' }}>Back</span>
+          </Link>
+          <div className="auth-header" style={{ marginTop: '20px' }}>
             <h1>🎓 Smart Campus</h1>
             <h2>Create Account</h2>
             <p>Join the Smart Campus community</p>
@@ -207,52 +221,52 @@ export default function Register() {
             </div>
 
             <div className="form-group">
-              <label htmlFor="password">Şifre</label>
+              <label htmlFor="password">Password</label>
               <input
                 type="password"
                 id="password"
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
-                placeholder="Güçlü bir şifre oluşturun"
+                placeholder="Create a strong password"
                 required
               />
               {formData.password && (
                 <div className="password-requirements">
                   <small style={{ color: passwordErrors.length ? '#27ae60' : '#e74c3c' }}>
-                    {passwordErrors.length ? '✓' : '✗'} En az 8 karakter
+                    {passwordErrors.length ? '✓' : '✗'} At least 8 characters
                   </small>
                   <small style={{ color: passwordErrors.uppercase ? '#27ae60' : '#e74c3c' }}>
-                    {passwordErrors.uppercase ? '✓' : '✗'} Bir büyük harf (A-Z)
+                    {passwordErrors.uppercase ? '✓' : '✗'} One uppercase letter (A-Z)
                   </small>
                   <small style={{ color: passwordErrors.lowercase ? '#27ae60' : '#e74c3c' }}>
-                    {passwordErrors.lowercase ? '✓' : '✗'} Bir küçük harf (a-z)
+                    {passwordErrors.lowercase ? '✓' : '✗'} One lowercase letter (a-z)
                   </small>
                   <small style={{ color: passwordErrors.number ? '#27ae60' : '#e74c3c' }}>
-                    {passwordErrors.number ? '✓' : '✗'} Bir rakam (0-9)
+                    {passwordErrors.number ? '✓' : '✗'} One number (0-9)
                   </small>
                   <small style={{ color: passwordErrors.special ? '#27ae60' : '#e74c3c' }}>
-                    {passwordErrors.special ? '✓' : '✗'} Bir özel karakter (@$!%*?&#)
+                    {passwordErrors.special ? '✓' : '✗'} One special character (@$!%*?&#)
                   </small>
                 </div>
               )}
             </div>
 
             <div className="form-group">
-              <label htmlFor="confirmPassword">Şifre Tekrarı</label>
+              <label htmlFor="confirmPassword">Confirm Password</label>
               <input
                 type="password"
                 id="confirmPassword"
                 name="confirmPassword"
                 value={formData.confirmPassword}
                 onChange={handleChange}
-                placeholder="Şifrenizi tekrar girin"
+                placeholder="Re-enter your password"
                 required
               />
             </div>
 
             <div className="form-group">
-              <label htmlFor="role">Rol</label>
+              <label htmlFor="role">Role</label>
               <select
                 id="role"
                 name="role"
@@ -260,35 +274,35 @@ export default function Register() {
                 onChange={handleChange}
                 required
               >
-                <option value="student">Öğrenci</option>
-                <option value="faculty">Öğretim Üyesi</option>
-                <option value="staff">Personel</option>
+                <option value="student">Student</option>
+                <option value="faculty">Faculty Member</option>
+                <option value="staff">Staff</option>
               </select>
             </div>
 
             {formData.role === 'student' && (
               <>
                 <div className="form-group">
-                  <label htmlFor="student_number">Öğrenci Numarası</label>
+                  <label htmlFor="student_number">Student Number</label>
                   <input
                     type="text"
                     id="student_number"
                     name="student_number"
                     value={formData.student_number}
                     onChange={handleChange}
-                    placeholder="Örnek: 20240001"
+                    placeholder="e.g. 20240001"
                     required
                   />
                 </div>
                 <div className="form-group">
-                  <label htmlFor="department_id">Bölüm (Opsiyonel)</label>
+                  <label htmlFor="department_id">Department (Optional)</label>
                   <select
                     id="department_id"
                     name="department_id"
                     value={formData.department_id}
                     onChange={handleChange}
                   >
-                    <option value="">Bölüm seçin (isteğe bağlı)</option>
+                    <option value="">Select department (optional)</option>
                     {departments.map(dept => (
                       <option key={dept.id} value={dept.id}>
                         {dept.name} ({dept.code})
@@ -302,37 +316,37 @@ export default function Register() {
             {formData.role === 'faculty' && (
               <>
                 <div className="form-group">
-                  <label htmlFor="employee_number">Personel Numarası</label>
+                  <label htmlFor="employee_number">Employee Number</label>
                   <input
                     type="text"
                     id="employee_number"
                     name="employee_number"
                     value={formData.employee_number}
                     onChange={handleChange}
-                    placeholder="Örnek: FAC001"
+                    placeholder="e.g. FAC001"
                     required
                   />
                 </div>
                 <div className="form-group">
-                  <label htmlFor="title">Unvan (Opsiyonel)</label>
+                  <label htmlFor="title">Title (Optional)</label>
                   <input
                     type="text"
                     id="title"
                     name="title"
                     value={formData.title}
                     onChange={handleChange}
-                    placeholder="Örnek: Prof. Dr., Doç. Dr."
+                    placeholder="e.g. Prof. Dr., Assoc. Prof."
                   />
                 </div>
                 <div className="form-group">
-                  <label htmlFor="department_id">Bölüm (Opsiyonel)</label>
+                  <label htmlFor="department_id">Department (Optional)</label>
                   <select
                     id="department_id"
                     name="department_id"
                     value={formData.department_id}
                     onChange={handleChange}
                   >
-                    <option value="">Bölüm seçin (isteğe bağlı)</option>
+                    <option value="">Select department (optional)</option>
                     {departments.map(dept => (
                       <option key={dept.id} value={dept.id}>
                         {dept.name} ({dept.code})
@@ -344,13 +358,13 @@ export default function Register() {
             )}
 
             <button type="submit" className="btn-primary" disabled={loading}>
-              {loading ? 'Hesap Oluşturuluyor...' : 'Kayıt Ol'}
+              {loading ? 'Creating Account...' : 'Register'}
             </button>
           </form>
 
           <div className="auth-footer">
             <p>
-              Zaten hesabınız var mı? <Link href="/login">Giriş yapın</Link>
+              Already have an account? <Link href="/login">Sign in</Link>
             </p>
           </div>
         </div>

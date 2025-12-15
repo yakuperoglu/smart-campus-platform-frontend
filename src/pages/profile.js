@@ -259,7 +259,7 @@ export default function Profile() {
 
   const handleResendVerification = async () => {
     if (verificationCooldown > 0) return;
-    
+
     setSendingVerification(true);
     setMessage({ type: '', text: '' });
 
@@ -267,13 +267,13 @@ export default function Profile() {
       const response = await api.post('/auth/resend-verification');
 
       if (response.data.success) {
-        setMessage({ type: 'success', text: 'Doğrulama e-postası gönderildi! Lütfen e-posta kutunuzu kontrol edin.' });
-        setVerificationCooldown(30); // 30 saniye bekleme süresi
+        setMessage({ type: 'success', text: 'Verification email sent! Please check your inbox.' });
+        setVerificationCooldown(30); // 30 seconds cooldown
       }
     } catch (error) {
       setMessage({
         type: 'error',
-        text: error.response?.data?.error?.message || 'Doğrulama e-postası gönderilemedi'
+        text: error.response?.data?.error?.message || 'Failed to send verification email'
       });
     } finally {
       setSendingVerification(false);
@@ -332,19 +332,19 @@ export default function Profile() {
               <div className="verification-warning">
                 <span className="warning-icon">⚠️</span>
                 <div className="warning-content">
-                  <h4>E-posta Doğrulanmadı</h4>
-                  <p>E-posta adresiniz henüz doğrulanmadı. Bazı özelliklerden tam olarak yararlanmak için lütfen e-postanızı doğrulayın.</p>
+                  <h4>Email Not Verified</h4>
+                  <p>Your email address has not been verified yet. Please verify your email to access all features.</p>
                 </div>
-                <button 
-                  onClick={handleResendVerification} 
+                <button
+                  onClick={handleResendVerification}
                   className="btn-verify"
                   disabled={sendingVerification || verificationCooldown > 0}
                 >
-                  {sendingVerification 
-                    ? 'Gönderiliyor...' 
-                    : verificationCooldown > 0 
-                      ? `Tekrar Gönder (${verificationCooldown}s)` 
-                      : 'Doğrulama E-postası Gönder'}
+                  {sendingVerification
+                    ? 'Sending...'
+                    : verificationCooldown > 0
+                      ? `Resend (${verificationCooldown}s)`
+                      : 'Send Verification Email'}
                 </button>
               </div>
             </div>
@@ -355,8 +355,8 @@ export default function Profile() {
               <div className="verification-success">
                 <span className="success-icon">✅</span>
                 <div className="success-content">
-                  <h4>E-posta Doğrulandı</h4>
-                  <p>E-posta adresiniz başarıyla doğrulandı.</p>
+                  <h4>Email Verified</h4>
+                  <p>Your email address has been successfully verified.</p>
                 </div>
               </div>
             </div>

@@ -56,8 +56,22 @@ export default function Login() {
       </Head>
 
       <div className="auth-container">
-        <div className="auth-card">
-          <div className="auth-header">
+        <div className="auth-card" style={{ position: 'relative' }}>
+          <Link href="/" style={{
+            position: 'absolute',
+            top: '15px',
+            left: '15px',
+            fontSize: '1.5rem',
+            color: '#667eea',
+            textDecoration: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '5px',
+            transition: 'transform 0.2s ease'
+          }}>
+            ← <span style={{ fontSize: '0.9rem' }}>Back</span>
+          </Link>
+          <div className="auth-header" style={{ marginTop: '20px' }}>
             <h1>🎓 Smart Campus</h1>
             <h2>Welcome Back</h2>
             <p>Sign in to continue to your account</p>
@@ -124,11 +138,11 @@ export default function Login() {
           <div className="demo-credentials">
             <p className="demo-title">Demo Credentials:</p>
             <p>👑 Admin: admin@smartcampus.edu / admin123</p>
-            <p>👨‍🏫 Öğretim: john.doe@smartcampus.edu / faculty123</p>
-            <p>👨‍🏫 Öğretim: jane.smith@smartcampus.edu / faculty123</p>
-            <p>👨‍🎓 Öğrenci: student1@smartcampus.edu / student123</p>
-            <p>👨‍🎓 Öğrenci: student2@smartcampus.edu / student123</p>
-            <p>👨‍🎓 Öğrenci: student3@smartcampus.edu / student123</p>
+            <p>👨‍🏫 Faculty: john.doe@smartcampus.edu / faculty123</p>
+            <p>👨‍🏫 Faculty: jane.smith@smartcampus.edu / faculty123</p>
+            <p>👨‍🎓 Student: student1@smartcampus.edu / student123</p>
+            <p>👨‍🎓 Student: student2@smartcampus.edu / student123</p>
+            <p>👨‍🎓 Student: student3@smartcampus.edu / student123</p>
           </div>
         </div>
       </div>

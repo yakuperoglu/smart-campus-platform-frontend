@@ -1,6 +1,6 @@
 /**
  * Attendance Check-in Page
- * Öğrenci için GPS tabanlı yoklama verme sayfası
+ * GPS-based attendance check-in page for students
  */
 
 import { useState, useEffect, useRef } from 'react';
@@ -12,7 +12,7 @@ import Navbar from '../components/Navbar';
 import api from '../config/api';
 import FeedbackMessage from '../components/FeedbackMessage';
 
-// Leaflet'i dynamic import ile yükle (SSR sorununu önlemek için)
+// Dynamic import for Leaflet (to prevent SSR issues)
 const MapContainer = dynamic(
   () => import('react-leaflet').then((mod) => mod.MapContainer),
   { ssr: false }
@@ -34,7 +34,7 @@ const Circle = dynamic(
   { ssr: false }
 );
 
-// Leaflet CSS'i import et
+// Import Leaflet CSS
 if (typeof window !== 'undefined') {
   require('leaflet/dist/leaflet.css');
 }
@@ -74,9 +74,9 @@ export default function Attendance() {
         }
       } catch (error) {
         console.error('Error fetching active sessions:', error);
-        const errorMessage = error.response?.data?.error?.message || 
-                            error.response?.data?.message || 
-                            'Aktif yoklama oturumları yüklenirken hata oluştu.';
+        const errorMessage = error.response?.data?.error?.message ||
+          error.response?.data?.message ||
+          'Error loading active attendance sessions.';
         setMessage({
           type: 'error',
           text: errorMessage
@@ -92,8 +92,8 @@ export default function Attendance() {
   // Konum alma fonksiyonu - Çok basit ve hızlı
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
-      setLocationError('Tarayıcınız konum servisini desteklemiyor.');
-      setMessage({ type: 'error', text: 'Tarayıcınız konum servisini desteklemiyor.' });
+      setLocationError('Your browser does not support location services.');
+      setMessage({ type: 'error', text: 'Your browser does not support location services.' });
       return;
     }
 
@@ -108,8 +108,8 @@ export default function Attendance() {
       if (!completed) {
         completed = true;
         setLoadingLocation(false);
-        setLocationError('Konum alma işlemi zaman aşımına uğradı. Lütfen tarayıcı ayarlarınızdan konum iznini kontrol edin.');
-        setMessage({ type: 'error', text: 'Konum alma işlemi zaman aşımına uğradı. Tarayıcı ayarlarından konum iznini kontrol edin.' });
+        setLocationError('Location request timed out. Please check location permissions in your browser settings.');
+        setMessage({ type: 'error', text: 'Location request timed out. Please check location permissions in browser settings.' });
       }
     }, 12000);
 
@@ -124,29 +124,29 @@ export default function Attendance() {
         setGpsAccuracy(accuracy || null);
         setLoadingLocation(false);
         setLocationError(null);
-        setMessage({ type: 'success', text: 'Konumunuz başarıyla alındı!' });
+        setMessage({ type: 'success', text: 'Your location was successfully retrieved!' });
       },
       (error) => {
         if (completed) return;
         completed = true;
         clearTimeout(safetyTimeout);
         setLoadingLocation(false);
-        let errorMessage = 'Konum alınamadı.';
-        
+        let errorMessage = 'Unable to get location.';
+
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            errorMessage = 'Konum izni reddedildi. Lütfen tarayıcı ayarlarından (adres çubuğundaki kilit simgesi) konum iznini açın ve sayfayı yenileyin.';
+            errorMessage = 'Location permission denied. Please enable location access in browser settings (lock icon in address bar) and refresh the page.';
             break;
           case error.POSITION_UNAVAILABLE:
-            errorMessage = 'Konum bilgisi alınamadı. GPS\'inizin açık olduğundan emin olun.';
+            errorMessage = 'Location information unavailable. Make sure your GPS is enabled.';
             break;
           case error.TIMEOUT:
-            errorMessage = 'Konum alma işlemi zaman aşımına uğradı. Lütfen tekrar deneyin.';
+            errorMessage = 'Location request timed out. Please try again.';
             break;
           default:
-            errorMessage = `Konum alınamadı: ${error.message || 'Bilinmeyen hata'}`;
+            errorMessage = `Unable to get location: ${error.message || 'Unknown error'}`;
         }
-        
+
         setLocationError(errorMessage);
         setMessage({ type: 'error', text: errorMessage });
       },
@@ -158,9 +158,9 @@ export default function Attendance() {
     );
   };
 
-  // Mesafe hesaplama (Haversine formülü)
+  // Distance calculation (Haversine formula)
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 6371e3; // Dünya yarıçapı (metre)
+    const R = 6371e3; // Earth radius (meters)
     const φ1 = (lat1 * Math.PI) / 180;
     const φ2 = (lat2 * Math.PI) / 180;
     const Δφ = ((lat2 - lat1) * Math.PI) / 180;
@@ -171,7 +171,7 @@ export default function Attendance() {
       Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
-    return R * c; // Metre cinsinden mesafe
+    return R * c; // Distance in meters
   };
 
   // Mesafeyi güncelle
@@ -192,7 +192,7 @@ export default function Attendance() {
   // Yoklama verme fonksiyonu
   const handleCheckIn = async () => {
     if (!location || !selectedSession) {
-      setMessage({ type: 'error', text: 'Lütfen konumunuzu alın ve bir yoklama oturumu seçin.' });
+      setMessage({ type: 'error', text: 'Please get your location and select an attendance session.' });
       return;
     }
 
@@ -210,21 +210,21 @@ export default function Attendance() {
       if (response.data.success) {
         setMessage({
           type: 'success',
-          text: response.data.message || 'Yoklama başarıyla verildi!'
+          text: response.data.message || 'Attendance submitted successfully!'
         });
-        
+
         // Başarılı olduktan sonra dashboard'a yönlendir
         setTimeout(() => {
           router.push('/dashboard');
         }, 2000);
       }
     } catch (error) {
-      const errorMessage = error.response?.data?.error?.message || 
-                          error.response?.data?.message || 
-                          'Yoklama verilirken bir hata oluştu.';
-      
+      const errorMessage = error.response?.data?.error?.message ||
+        error.response?.data?.message ||
+        'Error submitting attendance.';
+
       setMessage({ type: 'error', text: errorMessage });
-      
+
       // Mesafe bilgisini göster
       if (error.response?.data?.error?.details?.distance) {
         const dist = error.response.data.error.details.distance;
@@ -250,7 +250,7 @@ export default function Attendance() {
   }, []);
 
   if (authLoading) {
-    return <div>Yükleniyor...</div>;
+    return <div>Loading...</div>;
   }
 
   if (!user || user.role !== 'student') {
@@ -260,16 +260,16 @@ export default function Attendance() {
   return (
     <>
       <Head>
-        <title>Yoklama Ver - Smart Campus</title>
-        <meta name="description" content="GPS tabanlı yoklama verme sayfası" />
+        <title>Check-in - Smart Campus</title>
+        <meta name="description" content="GPS-based attendance check-in page" />
       </Head>
 
       <Navbar />
 
       <div className="attendance-container">
         <div className="attendance-card">
-          <h1>📍 Yoklama Ver</h1>
-          <p className="subtitle">Konumunuzu kullanarak yoklamanızı verin</p>
+          <h1>📍 Attendance Check-in</h1>
+          <p className="subtitle">Check in using your location</p>
 
           {message.text && (
             <FeedbackMessage
@@ -282,7 +282,7 @@ export default function Attendance() {
           {/* Aktif Oturum Seçimi */}
           {activeSessions.length > 0 ? (
             <div className="form-group">
-              <label htmlFor="session">Yoklama Oturumu Seçin:</label>
+              <label htmlFor="session">Select Attendance Session:</label>
               <select
                 id="session"
                 value={selectedSession?.id || ''}
@@ -292,12 +292,12 @@ export default function Attendance() {
                 }}
                 className="form-select"
               >
-                <option value="">Oturum seçin...</option>
+                <option value="">Select session...</option>
                 {activeSessions.map((session) => {
                   let timeStr = '';
                   try {
-                    if (session.start_time) {
-                      const date = new Date(session.start_time);
+                    if (session.start_time || session.timing?.start_time) {
+                      const date = new Date(session.start_time || session.timing?.start_time);
                       if (!isNaN(date.getTime())) {
                         timeStr = date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
                       }
@@ -305,32 +305,43 @@ export default function Attendance() {
                   } catch (e) {
                     console.error('Date parsing error:', e);
                   }
+                  const attendedText = session.already_checked_in ? ' ✅ (Attended)' : '';
                   return (
                     <option key={session.id} value={session.id}>
-                      {session.section?.course?.name || 'Ders'} - 
-                      {session.section?.section_number ? ` Bölüm ${session.section.section_number}` : ''} 
+                      {session.section?.course?.name || 'Course'} -
+                      {session.section?.section_number ? ` Section ${session.section.section_number}` : ''}
                       {timeStr ? ` (${timeStr})` : ''}
+                      {attendedText}
                     </option>
                   );
                 })}
               </select>
+
+              {/* Already attended notice */}
+              {selectedSession?.already_checked_in && (
+                <div className="success-box" style={{ marginTop: '15px', padding: '15px', background: '#d4edda', border: '1px solid #28a745', borderRadius: '8px', color: '#155724' }}>
+                  <p style={{ margin: 0 }}>
+                    ✅ <strong>You have already attended this session!</strong> Status: {selectedSession.check_in_status === 'present' ? 'Present' : selectedSession.check_in_status === 'late' ? 'Late' : selectedSession.check_in_status}
+                  </p>
+                </div>
+              )}
             </div>
           ) : (
             <div className="info-box">
-              <p>Şu anda aktif yoklama oturumu bulunmamaktadır.</p>
+              <p>No active attendance sessions available at the moment.</p>
             </div>
           )}
 
           {/* Konum Bilgisi */}
           <div className="location-section">
             <div className="location-header">
-              <h3>Konum Bilgisi</h3>
+              <h3>Location Information</h3>
               <button
                 onClick={getCurrentLocation}
                 disabled={loadingLocation}
                 className="btn-secondary"
               >
-                {loadingLocation ? 'Konum Alınıyor...' : '📍 Konum Al'}
+                {loadingLocation ? 'Getting Location...' : '📍 Get Location'}
               </button>
             </div>
 
@@ -343,14 +354,14 @@ export default function Attendance() {
             {location && location.lat && location.lng && (
               <div className="location-info">
                 <p>
-                  <strong>Enlem:</strong> {location.lat.toFixed(6)}
+                  <strong>Latitude:</strong> {location.lat.toFixed(6)}
                 </p>
                 <p>
-                  <strong>Boylam:</strong> {location.lng.toFixed(6)}
+                  <strong>Longitude:</strong> {location.lng.toFixed(6)}
                 </p>
                 {gpsAccuracy && (
                   <p>
-                    <strong>GPS Doğruluğu:</strong> ±{Math.round(gpsAccuracy)}m
+                    <strong>GPS Accuracy:</strong> ±{Math.round(gpsAccuracy)}m
                   </p>
                 )}
               </div>
@@ -360,15 +371,15 @@ export default function Attendance() {
             {distance !== null && selectedSession && selectedSession.geofence_radius && (
               <div className={`distance-info ${distance <= selectedSession.geofence_radius ? 'within-radius' : 'outside-radius'}`}>
                 <p>
-                  <strong>Sınıfa Mesafe:</strong> {distance?.toFixed(1) || '0'}m
+                  <strong>Distance to Classroom:</strong> {distance?.toFixed(1) || '0'}m
                 </p>
                 <p>
-                  <strong>İzin Verilen Mesafe:</strong> {selectedSession.geofence_radius}m
+                  <strong>Allowed Distance:</strong> {selectedSession.geofence_radius}m
                 </p>
                 {distance <= selectedSession.geofence_radius ? (
-                  <p className="status-success">✅ Sınıf alanı içindesiniz</p>
+                  <p className="status-success">✅ You are within the classroom area</p>
                 ) : (
-                  <p className="status-error">❌ Sınıf alanı dışındasınız</p>
+                  <p className="status-error">❌ You are outside the classroom area</p>
                 )}
               </div>
             )}
@@ -387,11 +398,11 @@ export default function Attendance() {
                   attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
-                
+
                 {/* Öğrenci Konumu */}
                 <Marker position={[location.lat, location.lng]}>
                   <Popup>
-                    <strong>Benim Konumum</strong>
+                    <strong>My Location</strong>
                     <br />
                     {location.lat?.toFixed(6) || 'N/A'}, {location.lng?.toFixed(6) || 'N/A'}
                   </Popup>
@@ -402,14 +413,14 @@ export default function Attendance() {
                   <>
                     <Marker position={[selectedSession.center_lat, selectedSession.center_long]}>
                       <Popup>
-                        <strong>Sınıf Konumu</strong>
+                        <strong>Classroom Location</strong>
                         <br />
                         {selectedSession.center_lat?.toFixed(6) || 'N/A'}, {selectedSession.center_long?.toFixed(6) || 'N/A'}
                         <br />
-                        İzin verilen mesafe: {selectedSession.geofence_radius || 0}m
+                        Allowed distance: {selectedSession.geofence_radius || 0}m
                       </Popup>
                     </Marker>
-                    
+
                     {/* Geofence Circle */}
                     {selectedSession.geofence_radius && (
                       <Circle
@@ -432,22 +443,22 @@ export default function Attendance() {
           {/* Yoklama Ver Butonu */}
           <button
             onClick={handleCheckIn}
-            disabled={!location || !selectedSession || checkingIn || (distance !== null && distance > selectedSession?.geofence_radius)}
+            disabled={!location || !selectedSession || checkingIn || selectedSession?.already_checked_in || (distance !== null && selectedSession?.location?.radius && distance > selectedSession.location.radius)}
             className="btn-primary btn-large"
             style={{ marginTop: '20px', width: '100%' }}
           >
-            {checkingIn ? 'Yoklama Veriliyor...' : '✅ Buradayım / Yoklama Ver'}
+            {checkingIn ? 'Submitting...' : selectedSession?.already_checked_in ? '✅ Already Attended' : '✅ I\'m Here / Check In'}
           </button>
 
           {!location && (
             <p className="help-text">
-              ⚠️ Yoklama verebilmek için önce konumunuzu almanız gerekmektedir.
+              ⚠️ Please get your location first to check in.
             </p>
           )}
 
           {location && selectedSession && distance !== null && distance > selectedSession.geofence_radius && (
             <p className="help-text error">
-              ⚠️ Sınıf alanı dışındasınız. Lütfen sınıfa yaklaşın.
+              ⚠️ You are outside the classroom area. Please move closer.
             </p>
           )}
         </div>

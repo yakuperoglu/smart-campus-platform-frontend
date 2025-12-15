@@ -1,6 +1,6 @@
 /**
  * Attendance Open Page (Faculty)
- * Öğretim üyesi için GPS tabanlı yoklama oturumu açma sayfası
+ * GPS-based attendance session creation page for faculty members
  */
 
 import { useState, useEffect, useRef } from 'react';
@@ -12,7 +12,7 @@ import Navbar from '../components/Navbar';
 import api from '../config/api';
 import FeedbackMessage from '../components/FeedbackMessage';
 
-// Leaflet'i dynamic import ile yükle (SSR sorununu önlemek için)
+// Dynamic import for Leaflet (to prevent SSR issues)
 const MapContainer = dynamic(
   () => import('react-leaflet').then((mod) => mod.MapContainer),
   { ssr: false }
@@ -34,7 +34,7 @@ const Circle = dynamic(
   { ssr: false }
 );
 
-// Leaflet CSS'i import et
+// Import Leaflet CSS
 if (typeof window !== 'undefined') {
   require('leaflet/dist/leaflet.css');
 }
@@ -73,7 +73,7 @@ export default function AttendanceOpen() {
         console.error('Error fetching sections:', error);
         setMessage({
           type: 'error',
-          text: 'Dersler yüklenirken hata oluştu.'
+          text: 'Error loading your courses.'
         });
       }
     };
@@ -86,8 +86,8 @@ export default function AttendanceOpen() {
   // Konum alma fonksiyonu - Çok basit ve hızlı
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
-      setLocationError('Tarayıcınız konum servisini desteklemiyor.');
-      setMessage({ type: 'error', text: 'Tarayıcınız konum servisini desteklemiyor.' });
+      setLocationError('Your browser does not support location services.');
+      setMessage({ type: 'error', text: 'Your browser does not support location services.' });
       return;
     }
 
@@ -102,8 +102,8 @@ export default function AttendanceOpen() {
       if (!completed) {
         completed = true;
         setLoadingLocation(false);
-        setLocationError('Konum alma işlemi zaman aşımına uğradı. Lütfen sınıf konumunu kullanın.');
-        setMessage({ type: 'error', text: 'Konum alma işlemi zaman aşımına uğradı. Lütfen sınıf konumunu kullanın.' });
+        setLocationError('Location request timed out. Please use classroom location.');
+        setMessage({ type: 'error', text: 'Location request timed out. Please use classroom location.' });
       }
     }, 12000);
 
@@ -118,29 +118,29 @@ export default function AttendanceOpen() {
         setGpsAccuracy(accuracy || null);
         setLoadingLocation(false);
         setLocationError(null);
-        setMessage({ type: 'success', text: 'Konumunuz başarıyla alındı!' });
+        setMessage({ type: 'success', text: 'Your location was successfully retrieved!' });
       },
       (error) => {
         if (completed) return;
         completed = true;
         clearTimeout(safetyTimeout);
         setLoadingLocation(false);
-        let errorMessage = 'Konum alınamadı.';
-        
+        let errorMessage = 'Unable to get location.';
+
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            errorMessage = 'Konum izni reddedildi. Lütfen tarayıcı ayarlarından (adres çubuğundaki kilit simgesi) konum iznini açın veya sınıf konumunu kullanın.';
+            errorMessage = 'Location permission denied. Please enable location in browser settings or use classroom location.';
             break;
           case error.POSITION_UNAVAILABLE:
-            errorMessage = 'Konum bilgisi alınamadı. GPS\'inizin açık olduğundan emin olun veya sınıf konumunu kullanın.';
+            errorMessage = 'Location unavailable. Make sure GPS is enabled or use classroom location.';
             break;
           case error.TIMEOUT:
-            errorMessage = 'Konum alma işlemi zaman aşımına uğradı. Lütfen sınıf konumunu kullanın.';
+            errorMessage = 'Location request timed out. Please use classroom location.';
             break;
           default:
-            errorMessage = `Konum alınamadı: ${error.message || 'Bilinmeyen hata'}. Lütfen sınıf konumunu kullanın.`;
+            errorMessage = `Unable to get location: ${error.message || 'Unknown error'}. Please use classroom location.`;
         }
-        
+
         setLocationError(errorMessage);
         setMessage({ type: 'error', text: errorMessage });
       },
@@ -157,7 +157,7 @@ export default function AttendanceOpen() {
   // Yoklama oturumu oluşturma
   const handleCreateSession = async () => {
     if (!selectedSection) {
-      setMessage({ type: 'error', text: 'Lütfen bir ders seçin.' });
+      setMessage({ type: 'error', text: 'Please select a course.' });
       return;
     }
 
@@ -171,7 +171,7 @@ export default function AttendanceOpen() {
     }
 
     if (!finalLocation) {
-      setMessage({ type: 'error', text: 'Lütfen konumunuzu alın veya sınıf konumunu kullanın.' });
+      setMessage({ type: 'error', text: 'Please get your location or use classroom location.' });
       return;
     }
 
@@ -191,19 +191,19 @@ export default function AttendanceOpen() {
       if (response.data.success) {
         setMessage({
           type: 'success',
-          text: `Yoklama oturumu başarıyla açıldı! Oturum kodu: ${response.data.data.session.session_code}`
+          text: `Attendance session started successfully! Session code: ${response.data.data.session.session_code}`
         });
-        
+
         // Başarılı olduktan sonra dashboard'a yönlendir
         setTimeout(() => {
           router.push('/dashboard');
         }, 3000);
       }
     } catch (error) {
-      const errorMessage = error.response?.data?.error?.message || 
-                          error.response?.data?.message || 
-                          'Yoklama oturumu açılırken bir hata oluştu.';
-      
+      const errorMessage = error.response?.data?.error?.message ||
+        error.response?.data?.message ||
+        'Error creating attendance session.';
+
       setMessage({ type: 'error', text: errorMessage });
     } finally {
       setCreating(false);
@@ -217,9 +217,9 @@ export default function AttendanceOpen() {
         lat: selectedSection.classroom.gps_lat,
         lng: selectedSection.classroom.gps_long
       });
-      setMessage({ type: 'success', text: 'Sınıf konumu kullanıldı!' });
+      setMessage({ type: 'success', text: 'Classroom location applied!' });
     } else {
-      setMessage({ type: 'error', text: 'Bu ders için sınıf konumu tanımlı değil.' });
+      setMessage({ type: 'error', text: 'No classroom location defined for this course.' });
     }
   };
 
@@ -237,7 +237,7 @@ export default function AttendanceOpen() {
   }, []);
 
   if (authLoading) {
-    return <div>Yükleniyor...</div>;
+    return <div>Loading...</div>;
   }
 
   if (!user || user.role !== 'faculty') {
@@ -247,16 +247,16 @@ export default function AttendanceOpen() {
   return (
     <>
       <Head>
-        <title>Yoklama Oturumu Aç - Smart Campus</title>
-        <meta name="description" content="GPS tabanlı yoklama oturumu açma sayfası" />
+        <title>Open Attendance Session - Smart Campus</title>
+        <meta name="description" content="GPS-based attendance session creation page" />
       </Head>
 
       <Navbar />
 
       <div className="attendance-container">
         <div className="attendance-card">
-          <h1>📋 Yoklama Oturumu Aç</h1>
-          <p className="subtitle">Dersiniz için GPS tabanlı yoklama oturumu oluşturun</p>
+          <h1>📋 Open Attendance Session</h1>
+          <p className="subtitle">Create a GPS-based attendance session for your course</p>
 
           {message.text && (
             <FeedbackMessage
@@ -266,9 +266,9 @@ export default function AttendanceOpen() {
             />
           )}
 
-          {/* Ders Seçimi */}
+          {/* Select Course */}
           <div className="form-group">
-            <label htmlFor="section">Ders Seçin:</label>
+            <label htmlFor="section">Select Course:</label>
             <select
               id="section"
               value={selectedSection?.id || ''}
@@ -278,16 +278,16 @@ export default function AttendanceOpen() {
               }}
               className="form-select"
             >
-              <option value="">Ders seçin...</option>
+              <option value="">Select course...</option>
               {sections.map((section) => (
                 <option key={section.id} value={section.id}>
-                  {section.course?.code || 'Ders'} - {section.course?.name || 'İsimsiz'} 
-                  (Bölüm {section.section_number}, {section.semester} {section.year})
+                  {section.course?.code || 'Course'} - {section.course?.name || 'Unnamed'}
+                  (Section {section.section_number}, {section.semester} {section.year})
                 </option>
               ))}
             </select>
             {sections.length === 0 && (
-              <p className="help-text">Henüz size atanmış ders bulunmamaktadır.</p>
+              <p className="help-text">No courses assigned to you yet.</p>
             )}
           </div>
 
@@ -299,7 +299,7 @@ export default function AttendanceOpen() {
                 className="btn-secondary"
                 style={{ width: '100%' }}
               >
-                🏫 Sınıf Konumunu Kullan ({selectedSection.classroom.building} {selectedSection.classroom.room_number})
+                🏫 Use Classroom Location ({selectedSection.classroom.building} {selectedSection.classroom.room_number})
               </button>
             </div>
           )}
@@ -307,13 +307,13 @@ export default function AttendanceOpen() {
           {/* Konum Bilgisi */}
           <div className="location-section">
             <div className="location-header">
-              <h3>Konum Bilgisi</h3>
+              <h3>Location Information</h3>
               <button
                 onClick={getCurrentLocation}
                 disabled={loadingLocation}
                 className="btn-secondary"
               >
-                {loadingLocation ? 'Konum Alınıyor...' : '📍 Konum Al'}
+                {loadingLocation ? 'Getting Location...' : '📍 Get Location'}
               </button>
             </div>
 
@@ -326,14 +326,14 @@ export default function AttendanceOpen() {
             {location && location.lat && location.lng && (
               <div className="location-info">
                 <p>
-                  <strong>Enlem:</strong> {location.lat?.toFixed(6) || 'N/A'}
+                  <strong>Latitude:</strong> {location.lat?.toFixed(6) || 'N/A'}
                 </p>
                 <p>
-                  <strong>Boylam:</strong> {location.lng?.toFixed(6) || 'N/A'}
+                  <strong>Longitude:</strong> {location.lng?.toFixed(6) || 'N/A'}
                 </p>
                 {gpsAccuracy && (
                   <p>
-                    <strong>GPS Doğruluğu:</strong> ±{Math.round(gpsAccuracy)}m
+                    <strong>GPS Accuracy:</strong> ±{Math.round(gpsAccuracy)}m
                   </p>
                 )}
               </div>
@@ -342,11 +342,11 @@ export default function AttendanceOpen() {
 
           {/* Yoklama Ayarları */}
           <div className="settings-section">
-            <h3>Yoklama Ayarları</h3>
-            
+            <h3>Attendance Settings</h3>
+
             <div className="form-group">
               <label htmlFor="radius">
-                İzin Verilen Mesafe (metre): {radius}m
+                Allowed Distance (meters): {radius}m
               </label>
               <input
                 type="range"
@@ -365,7 +365,7 @@ export default function AttendanceOpen() {
 
             <div className="form-group">
               <label htmlFor="duration">
-                Oturum Süresi (dakika):
+                Session Duration (minutes):
               </label>
               <input
                 type="number"
@@ -376,7 +376,7 @@ export default function AttendanceOpen() {
                 onChange={(e) => setDuration(parseInt(e.target.value) || 90)}
                 className="form-input"
               />
-              <p className="help-text">Öğrenciler bu süre içinde yoklama verebilir</p>
+              <p className="help-text">Students can check in within this time period</p>
             </div>
           </div>
 
@@ -393,18 +393,18 @@ export default function AttendanceOpen() {
                   attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
-                
+
                 {/* Konum Marker */}
                 <Marker position={[location.lat, location.lng]}>
                   <Popup>
-                    <strong>Yoklama Konumu</strong>
+                    <strong>Attendance Location</strong>
                     <br />
                     {location.lat?.toFixed(6) || 'N/A'}, {location.lng?.toFixed(6) || 'N/A'}
                     <br />
-                    İzin verilen mesafe: {radius || 0}m
+                    Allowed distance: {radius || 0}m
                   </Popup>
                 </Marker>
-                
+
                 {/* Geofence Circle */}
                 {radius && (
                   <Circle
@@ -429,24 +429,24 @@ export default function AttendanceOpen() {
             className="btn-primary btn-large"
             style={{ marginTop: '20px', width: '100%' }}
           >
-            {creating ? 'Yoklama Oturumu Açılıyor...' : '✅ Yoklama Oturumu Aç'}
+            {creating ? 'Creating Session...' : '✅ Open Attendance Session'}
           </button>
 
           {!location && !selectedSection?.classroom && (
             <p className="help-text">
-              ⚠️ Yoklama oturumu açabilmek için konumunuzu alın veya sınıf konumunu kullanın.
+              ⚠️ Please get your location or use classroom location to open attendance session.
             </p>
           )}
 
           {!selectedSection && (
             <p className="help-text">
-              ⚠️ Lütfen bir ders seçin.
+              ⚠️ Please select a course.
             </p>
           )}
 
           {selectedSection?.classroom && !location && (
             <p className="help-text" style={{ background: '#d4edda', color: '#155724' }}>
-              💡 İpucu: Sınıf konumu mevcut. "Sınıf Konumunu Kullan" butonuna tıklayarak GPS olmadan da yoklama açabilirsiniz.
+              💡 Tip: Classroom location is available. You can click "Use Classroom Location" to open attendance without GPS.
             </p>
           )}
         </div>
