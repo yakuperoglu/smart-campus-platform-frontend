@@ -7,6 +7,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import dynamic from 'next/dynamic';
+import { QRCodeSVG } from 'qrcode.react';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import api from '../config/api';
@@ -52,6 +53,8 @@ export default function AttendanceOpen() {
   const [creating, setCreating] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [gpsAccuracy, setGpsAccuracy] = useState(null);
+  const [activeSession, setActiveSession] = useState(null);
+  const [qrCodeValue, setQrCodeValue] = useState('');
   const mapRef = useRef(null);
 
   // Redirect if not authenticated or not faculty
@@ -146,13 +149,18 @@ export default function AttendanceOpen() {
       },
       {
         enableHighAccuracy: false,
-        timeout: 10000, // 10 saniye - çok kısa
-        maximumAge: 600000 // 10 dakika önceki konumu kabul et
+        timeout: 10000,
+        maximumAge: 600000
       }
     );
   };
 
-  // Otomatik konum alma kaldırıldı - kullanıcı manuel olarak "Konum Al" butonuna tıklamalı
+  // Automatically get location
+  useEffect(() => {
+    if (user && user.role === 'faculty') {
+      getCurrentLocation();
+    }
+  }, [user]);
 
   // Yoklama oturumu oluşturma
   const handleCreateSession = async () => {
@@ -191,13 +199,11 @@ export default function AttendanceOpen() {
       if (response.data.success) {
         setMessage({
           type: 'success',
-          text: `Attendance session started successfully! Session code: ${response.data.data.session.session_code}`
+          text: `Attendance session started successfully!`
         });
 
-        // Başarılı olduktan sonra dashboard'a yönlendir
-        setTimeout(() => {
-          router.push('/dashboard');
-        }, 3000);
+        // Set active session to show QR view
+        setActiveSession(response.data.data.session);
       }
     } catch (error) {
       const errorMessage = error.response?.data?.error?.message ||
@@ -221,6 +227,40 @@ export default function AttendanceOpen() {
     } else {
       setMessage({ type: 'error', text: 'No classroom location defined for this course.' });
     }
+  };
+
+  // QR Code Rotation Logic
+  useEffect(() => {
+    let intervalId;
+
+    if (activeSession && activeSession.id) {
+      // Set initial QR code
+      setQrCodeValue(activeSession.session_code);
+
+      // Refresh function
+      const refreshQr = async () => {
+        try {
+          const response = await api.put(`/attendance/sessions/${activeSession.id}/qr`);
+          if (response.data.success) {
+            setQrCodeValue(response.data.data.session_code);
+          }
+        } catch (error) {
+          console.error('Error refreshing QR code:', error);
+        }
+      };
+
+      // Set interval for 5 seconds
+      intervalId = setInterval(refreshQr, 5000);
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [activeSession]);
+
+  const closeLiveSession = () => {
+    setActiveSession(null);
+    router.push('/dashboard');
   };
 
   // Leaflet icon sorununu düzelt
@@ -452,7 +492,133 @@ export default function AttendanceOpen() {
         </div>
       </div>
 
+      {/* Live Session Modal / Overlay */}
+      {activeSession && (
+        <div className="live-session-overlay">
+          <div className="live-session-card">
+            <div className="live-header">
+              <h2>📡 Live Attendance Session</h2>
+              <span className="live-badge">LIVE</span>
+            </div>
+
+            <div className="course-info">
+              <h3>{activeSession.course?.code} - {activeSession.course?.name}</h3>
+              <p>Section {activeSession.section?.section_number}</p>
+            </div>
+
+            <div className="qr-section">
+              <div className="qr-container">
+                {qrCodeValue ? (
+                  <QRCodeSVG
+                    value={activeSession.session_code}
+                    size={256}
+                    level={"H"}
+                    includeMargin={true}
+                  />
+                ) : (
+                  <p>Loading QR...</p>
+                )}
+              </div>
+              <p className="qr-code-text">Session Code: <strong>{qrCodeValue}</strong></p>
+              <p className="refresh-note">QR Code refreshes every 5 seconds</p>
+            </div>
+
+            <div className="session-actions">
+              <button onClick={closeLiveSession} className="btn-secondary">
+                Close & Return to Dashboard
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style jsx>{`
+        .live-session-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0,0,0,0.85);
+          z-index: 1000;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
+        }
+
+        .live-session-card {
+          background: white;
+          padding: 40px;
+          border-radius: 20px;
+          width: 100%;
+          max-width: 500px;
+          text-align: center;
+          box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+          animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+          from { transform: translateY(50px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+
+        .live-header {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 15px;
+          margin-bottom: 20px;
+        }
+
+        .live-header h2 {
+          margin: 0;
+          color: #2c3e50;
+        }
+
+        .live-badge {
+          background: #e74c3c;
+          color: white;
+          padding: 5px 10px;
+          border-radius: 4px;
+          font-weight: bold;
+          font-size: 0.8rem;
+          animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+          0% { opacity: 1; }
+          50% { opacity: 0.5; }
+          100% { opacity: 1; }
+        }
+
+        .qr-section {
+          margin: 30px 0;
+          padding: 20px;
+          background: #f8f9fa;
+          border-radius: 12px;
+        }
+
+        .qr-container {
+          background: white;
+          padding: 15px;
+          display: inline-block;
+          border-radius: 8px;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+          margin-bottom: 15px;
+        }
+
+        .qr-code-text {
+          font-size: 1.2rem;
+          color: #34495e;
+          margin-bottom: 5px;
+        }
+
+        .refresh-note {
+          color: #7f8c8d;
+          font-size: 0.9rem;
+        }
+
         .attendance-container {
           min-height: 100vh;
           padding: 20px;
@@ -669,4 +835,3 @@ export default function AttendanceOpen() {
     </>
   );
 }
-
