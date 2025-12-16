@@ -11,8 +11,7 @@ import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import api from '../config/api';
 import FeedbackMessage from '../components/FeedbackMessage';
-
-// Dynamic import for Leaflet (to prevent SSR issues)
+import { Html5QrcodeScanner } from 'html5-qrcode';// Dynamic import for Leaflet (to prevent SSR issues)
 const MapContainer = dynamic(
   () => import('react-leaflet').then((mod) => mod.MapContainer),
   { ssr: false }
@@ -49,11 +48,10 @@ export default function Attendance() {
   const [selectedSession, setSelectedSession] = useState(null);
   const [distance, setDistance] = useState(null);
   const [checkingIn, setCheckingIn] = useState(false);
-  const [message, setMessage] = useState({ type: '', text: '' });
-  const [gpsAccuracy, setGpsAccuracy] = useState(null);
+  const [showScanner, setShowScanner] = useState(false);
   const mapRef = useRef(null);
-
-  // Redirect if not authenticated or not student
+  const [message, setMessage] = useState({ type: '', text: '' });
+  const [gpsAccuracy, setGpsAccuracy] = useState(null);  // Redirect if not authenticated or not student
   useEffect(() => {
     if (!authLoading && (!user || user.role !== 'student')) {
       router.push('/dashboard');
@@ -89,6 +87,12 @@ export default function Attendance() {
     }
   }, [user]);
 
+  // Automatically get location
+  useEffect(() => {
+    if (user && user.role === 'student') {
+      getCurrentLocation();
+    }
+  }, [user]);
   // Konum alma fonksiyonu - Çok basit ve hızlı
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
@@ -187,12 +191,39 @@ export default function Attendance() {
     }
   }, [location, selectedSession]);
 
-  // Otomatik konum alma kaldırıldı - kullanıcı manuel olarak "Konum Al" butonuna tıklamalı
+  // QR Scanner Effect
+  useEffect(() => {
+    if (showScanner) {
+      const scanner = new Html5QrcodeScanner(
+        "reader",
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        /* verbose= */ false
+      );
+
+      scanner.render((decodedText, decodedResult) => {
+        // Handle success
+        scanner.clear();
+        setShowScanner(false);
+        handleCheckIn(decodedText); // Pass scanned code
+      }, (error) => {
+        // console.warn(error);
+      });
+
+      return () => {
+        scanner.clear().catch(error => console.error("Failed to clear scanner", error));
+      };
+    }
+  }, [showScanner]);
 
   // Yoklama verme fonksiyonu
-  const handleCheckIn = async () => {
-    if (!location || !selectedSession) {
-      setMessage({ type: 'error', text: 'Please get your location and select an attendance session.' });
+  const handleCheckIn = async (qrCode = null) => {
+    if (!location) {
+      setMessage({ type: 'error', text: 'Please get your location first.' });
+      return;
+    }
+
+    if (!selectedSession && !qrCode) {
+      setMessage({ type: 'error', text: 'Please select a session or scan QR code.' });
       return;
     }
 
@@ -200,12 +231,19 @@ export default function Attendance() {
     setMessage({ type: '', text: '' });
 
     try {
-      const response = await api.post('/attendance/checkin', {
-        session_id: selectedSession.id,
+      const payload = {
         lat: location.lat,
         lon: location.lng,
         gps_accuracy: gpsAccuracy
-      });
+      };
+
+      if (qrCode) {
+        payload.session_code = qrCode;
+      } else {
+        payload.session_id = selectedSession.id;
+      }
+
+      const response = await api.post('/attendance/checkin', payload);
 
       if (response.data.success) {
         setMessage({
@@ -213,7 +251,6 @@ export default function Attendance() {
           text: response.data.message || 'Attendance submitted successfully!'
         });
 
-        // Başarılı olduktan sonra dashboard'a yönlendir
         setTimeout(() => {
           router.push('/dashboard');
         }, 2000);
@@ -225,16 +262,15 @@ export default function Attendance() {
 
       setMessage({ type: 'error', text: errorMessage });
 
-      // Mesafe bilgisini göster
       if (error.response?.data?.error?.details?.distance) {
         const dist = error.response.data.error.details.distance;
-        const radius = error.response.data.error.details.allowed_radius;
         setDistance(dist);
       }
     } finally {
       setCheckingIn(false);
     }
   };
+
 
   // Leaflet icon sorununu düzelt
   useEffect(() => {
@@ -363,8 +399,37 @@ export default function Attendance() {
                   <p>
                     <strong>GPS Accuracy:</strong> ±{Math.round(gpsAccuracy)}m
                   </p>
+                )}          {/* Scanner Modal */}
+                {showScanner && (
+                  <div className="scanner-modal">
+                    <div className="scanner-container">
+                      <h3>Scan QR Code</h3>
+                      <div id="reader" width="100%"></div>
+                      <button onClick={() => setShowScanner(false)} className="btn-secondary" style={{ marginTop: '10px' }}>
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
                 )}
-              </div>
+
+                <div className="action-buttons">
+                  <button
+                    onClick={() => handleCheckIn(null)}
+                    disabled={!location || !selectedSession || checkingIn || selectedSession?.already_checked_in}
+                    className="btn-primary"
+                  >
+                    {checkingIn ? 'Submitting...' : selectedSession?.already_checked_in ? '✅ Already Attended' : '📍 Check In (GPS)'}
+                  </button>
+
+                  <button
+                    onClick={() => setShowScanner(true)}
+                    disabled={!location || checkingIn}
+                    className="btn-primary"
+                    style={{ background: '#2c3e50' }}
+                  >
+                    📷 Scan QR & Check In
+                  </button>
+                </div>              </div>
             )}
 
             {/* Mesafe Bilgisi */}
@@ -440,15 +505,7 @@ export default function Attendance() {
             </div>
           )}
 
-          {/* Yoklama Ver Butonu */}
-          <button
-            onClick={handleCheckIn}
-            disabled={!location || !selectedSession || checkingIn || selectedSession?.already_checked_in || (distance !== null && selectedSession?.location?.radius && distance > selectedSession.location.radius)}
-            className="btn-primary btn-large"
-            style={{ marginTop: '20px', width: '100%' }}
-          >
-            {checkingIn ? 'Submitting...' : selectedSession?.already_checked_in ? '✅ Already Attended' : '✅ I\'m Here / Check In'}
-          </button>
+
 
           {!location && (
             <p className="help-text">
@@ -679,13 +736,46 @@ export default function Attendance() {
             align-items: flex-start;
             gap: 10px;
           }
-
+          
           .map-container {
             height: 300px !important;
           }
+        }
+        
+        .scanner-modal {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0,0,0,0.8);
+          z-index: 2000;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
+        }
+
+        .scanner-container {
+          background: white;
+          padding: 20px;
+          border-radius: 12px;
+          width: 100%;
+          max-width: 500px;
+        }
+
+        .action-buttons {
+          display: flex;
+          gap: 15px;
+          margin-top: 20px;
+        }
+        
+        .action-buttons button {
+          flex: 1;
+          padding: 16px;
+          font-size: 1.1rem;
         }
       `}</style>
     </>
   );
 }
-
