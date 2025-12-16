@@ -91,6 +91,71 @@ const Navbar = ({ userData: propUserData }) => {
                                 </>
                             )}
 
+                            {/* Faculty Links */}
+                            {userData?.role === 'faculty' && (
+                                <>
+                                    <button
+                                        className="dropdown-item"
+                                        onClick={() => {
+                                            setShowProfileMenu(false);
+                                            router.push('/attendance-open');
+                                        }}
+                                    >
+                                        <span className="item-icon">📋</span>
+                                        My Sessions
+                                    </button>
+                                    <button
+                                        className="dropdown-item"
+                                        onClick={() => {
+                                            setShowProfileMenu(false);
+                                            router.push('/excuse-management');
+                                        }}
+                                    >
+                                        <span className="item-icon">📩</span>
+                                        Excuse Requests
+                                    </button>
+                                    <div className="dropdown-divider"></div>
+                                </>
+                            )}
+
+                            {/* Student Links */}
+                            {userData?.role === 'student' && (
+                                <>
+                                    <button
+                                        className="dropdown-item"
+                                        onClick={() => {
+                                            setShowProfileMenu(false);
+                                            router.push('/my-courses');
+                                        }}
+                                    >
+                                        <span className="item-icon">📚</span>
+                                        My Courses
+                                    </button>
+                                    <button
+                                        className="dropdown-item"
+                                        onClick={() => {
+                                            setShowProfileMenu(false);
+                                            router.push('/my-grades');
+                                        }}
+                                    >
+                                        <span className="item-icon">📊</span>
+                                        Grades & Transcript
+                                    </button>
+                                    <button
+                                        className="dropdown-item"
+                                        onClick={() => {
+                                            setShowProfileMenu(false);
+                                            router.push('/my-excuses');
+                                        }}
+                                    >
+                                        <span className="item-icon">📝</span>
+                                        My Excuses
+                                    </button>
+
+                                    <div className="dropdown-divider"></div>
+                                </>
+                            )}
+
                             <button
                                 className="dropdown-item"
                                 onClick={() => {
