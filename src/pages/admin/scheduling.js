@@ -288,22 +288,22 @@ export default function SchedulingPage() {
                         {result.statistics && (
                             <div style={styles.statsGrid}>
                                 <div style={styles.statCard}>
-                                    <span style={styles.statValue}>{result.statistics.assigned || 0}</span>
+                                    <span style={styles.statValue}>{result.statistics.scheduled_sections || 0}</span>
                                     <span style={styles.statLabel}>Assigned</span>
                                 </div>
                                 <div style={styles.statCard}>
-                                    <span style={{ ...styles.statValue, color: result.statistics.unassigned > 0 ? '#EF4444' : '#10B981' }}>
-                                        {result.statistics.unassigned || 0}
+                                    <span style={{ ...styles.statValue, color: result.statistics.unscheduled_sections > 0 ? '#EF4444' : '#10B981' }}>
+                                        {result.statistics.unscheduled_sections || 0}
                                     </span>
                                     <span style={styles.statLabel}>Unassigned</span>
                                 </div>
                                 <div style={styles.statCard}>
-                                    <span style={styles.statValue}>{result.statistics.conflicts || 0}</span>
-                                    <span style={styles.statLabel}>Conflicts</span>
+                                    <span style={styles.statValue}>{result.statistics.backtrack_count || 0}</span>
+                                    <span style={styles.statLabel}>Backtracks</span>
                                 </div>
                                 <div style={styles.statCard}>
                                     <span style={styles.statValue}>
-                                        {result.statistics.duration ? `${(result.statistics.duration / 1000).toFixed(1)}s` : '-'}
+                                        {result.statistics.duration_ms ? `${(result.statistics.duration_ms / 1000).toFixed(1)}s` : '-'}
                                     </span>
                                     <span style={styles.statLabel}>Duration</span>
                                 </div>
