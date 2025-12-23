@@ -74,6 +74,32 @@ const scheduleService = {
     },
 
     /**
+     * Export schedule to iCal
+     * @returns {Promise<void>} Triggers file download
+     */
+    async exportToIcal() {
+        try {
+            const response = await api.get('/scheduling/my-schedule/ical', {
+                responseType: 'blob'
+            });
+
+            // Trigger download
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'course-schedule.ics');
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+
+            return { success: true };
+        } catch (error) {
+            throw this._handleError(error);
+        }
+    },
+
+    /**
      * Get scheduling configuration info (admin only)
      * @returns {Promise<Object>}
      */
