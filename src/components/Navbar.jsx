@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { useAuth } from '../context/AuthContext';
+import NotificationsPopover from './NotificationsPopover';
 
 const Navbar = ({ userData: propUserData }) => {
     const router = useRouter();
@@ -52,7 +53,7 @@ const Navbar = ({ userData: propUserData }) => {
                 </Link>
             </div>
             <div className="nav-actions">
-                {/* Simple navigation links could go here if needed */}
+                {userData && <NotificationsPopover />}
 
                 <div className="profile-menu-container">
                     <button

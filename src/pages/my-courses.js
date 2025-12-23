@@ -15,10 +15,14 @@ export default function MyCourses() {
     const router = useRouter();
     const { user, loading: authLoading } = useAuth();
     const [courses, setCourses] = useState([]);
+    const [availableCourses, setAvailableCourses] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [loadingAvailable, setLoadingAvailable] = useState(false);
     const [error, setError] = useState(null);
     const [message, setMessage] = useState({ type: '', text: '' });
     const [droppingId, setDroppingId] = useState(null);
+    const [enrollingId, setEnrollingId] = useState(null);
+    const [searchTerm, setSearchTerm] = useState('');
 
     // Redirect if not authenticated or not student
     useEffect(() => {
@@ -50,6 +54,49 @@ export default function MyCourses() {
 
         fetchCourses();
     }, [user]);
+
+    // Fetch available courses
+    useEffect(() => {
+        const fetchAvailableCourses = async () => {
+            if (!user || user.role !== 'student') return;
+
+            try {
+                setLoadingAvailable(true);
+                const params = new URLSearchParams();
+                params.append('semester', 'Spring');
+                params.append('year', '2024');
+                if (searchTerm && searchTerm.trim() !== '') {
+                    params.append('search', searchTerm);
+                }
+
+                const response = await api.get(`/courses?${params.toString()}`);
+
+                if (response.data.success) {
+                    const allCourses = response.data.data.courses || [];
+                    
+                    // Filter out courses that are already enrolled
+                    const enrolledSectionIds = new Set(
+                        courses.map(e => e.section?.id).filter(Boolean)
+                    );
+                    
+                    const filtered = allCourses.map(course => ({
+                        ...course,
+                        sections: course.sections.filter(
+                            section => !enrolledSectionIds.has(section.id)
+                        )
+                    })).filter(course => course.sections.length > 0);
+                    
+                    setAvailableCourses(filtered);
+                }
+            } catch (err) {
+                console.error('Error fetching available courses:', err);
+            } finally {
+                setLoadingAvailable(false);
+            }
+        };
+
+        fetchAvailableCourses();
+    }, [user, searchTerm, courses]);
 
     // Handle course drop
     const handleDropCourse = async (enrollmentId, courseName) => {
@@ -83,16 +130,68 @@ export default function MyCourses() {
         }
     };
 
-    // Format schedule text from JSON
-    const formatSchedule = (scheduleJson) => {
-        if (!scheduleJson) return 'TBA';
+    // Handle course enrollment
+    const handleEnroll = async (sectionId, courseName, sectionNumber) => {
+        try {
+            setEnrollingId(sectionId);
+            setMessage({ type: '', text: '' });
 
-        let schedule = scheduleJson;
+            const response = await api.post('/enrollments', {
+                section_id: sectionId
+            });
+
+            if (response.data.success) {
+                setMessage({
+                    type: 'success',
+                    text: `Successfully enrolled in ${courseName} (Section ${sectionNumber})!`
+                });
+
+                // Refresh enrolled courses
+                const enrollmentsResponse = await api.get('/enrollments?status=enrolled');
+                if (enrollmentsResponse.data.success) {
+                    const enrollments = enrollmentsResponse.data.data.enrollments || [];
+                    console.log('Refreshed enrollments:', enrollments); // Debug
+                    setCourses(enrollments);
+                }
+            }
+        } catch (err) {
+            console.error('Enrollment error:', err);
+            let errorMessage = 'Failed to enroll. Please try again.';
+            
+            if (err.response?.data?.error) {
+                const error = err.response.data.error;
+                if (error.code === 'PREREQUISITES_NOT_MET') {
+                    errorMessage = 'Prerequisites not met. Please complete required courses first.';
+                } else if (error.code === 'SCHEDULE_CONFLICT') {
+                    errorMessage = 'Schedule conflict detected. Please choose a different section.';
+                } else if (error.code === 'SECTION_FULL') {
+                    errorMessage = 'This section is full. Please choose another section.';
+                } else if (error.code === 'ALREADY_ENROLLED' || error.code === 'ALREADY_ENROLLED_IN_COURSE') {
+                    errorMessage = 'You are already enrolled in this course or section.';
+                } else if (error.message) {
+                    errorMessage = error.message;
+                }
+            }
+            
+            setMessage({
+                type: 'error',
+                text: errorMessage
+            });
+        } finally {
+            setEnrollingId(null);
+        }
+    };
+
+    // Format schedule text from JSON
+    const formatSchedule = (scheduleData) => {
+        if (!scheduleData) return 'TBA';
+
+        let schedule = scheduleData;
         if (typeof schedule === 'string') {
             try {
                 schedule = JSON.parse(schedule);
             } catch (e) {
-                return scheduleJson;
+                return scheduleData;
             }
         }
 
@@ -151,75 +250,139 @@ export default function MyCourses() {
                         </div>
                     )}
 
-                    {courses.length === 0 && !loading && !error ? (
-                        <div className="empty-state">
-                            <div className="empty-icon">📚</div>
-                            <h3>No Enrolled Courses</h3>
-                            <p>You are not currently enrolled in any courses.</p>
-                            <button
-                                onClick={() => router.push('/courses')}
-                                className="btn-primary"
-                            >
-                                Browse Course Catalog
-                            </button>
-                        </div>
-                    ) : (
-                        <div className="courses-grid">
-                            {courses.map((enrollment) => {
-                                const section = enrollment.section || {};
-                                const course = section.course || {};
+                    <div className="two-column-layout">
+                        {/* Left Column: Enrolled Courses */}
+                        <div className="left-column">
+                            <h2 className="section-title">Enrolled Courses</h2>
+                            
+                            {courses.length === 0 && !loading && !error ? (
+                                <div className="empty-state">
+                                    <div className="empty-icon">📚</div>
+                                    <h3>No Enrolled Courses</h3>
+                                    <p>You are not currently enrolled in any courses.</p>
+                                </div>
+                            ) : (
+                                <div className="courses-grid">
+                                    {courses.map((enrollment) => {
+                                        const section = enrollment.section || {};
+                                        // Backend returns course and section separately, not section.course
+                                        const course = enrollment.course || section.course || {};
 
-                                return (
-                                    <div key={enrollment.id} className="course-card">
-                                        <div className="course-header">
-                                            <div className="course-code-badge">{course.code}</div>
-                                            <div className="credits-badge">{course.credits} Credits</div>
-                                        </div>
+                                        return (
+                                            <div key={enrollment.id} className="course-card">
+                                                <div className="course-header">
+                                                    <div className="course-code-badge">{course.code || 'N/A'}</div>
+                                                    <div className="credits-badge">{course.credits || 0} Credits</div>
+                                                </div>
 
-                                        <h3 className="course-title">{course.name}</h3>
+                                                <h3 className="course-title">{course.name || 'Unknown Course'}</h3>
 
-                                        <div className="course-info">
-                                            <div className="info-item">
-                                                <span className="label">Section:</span>
-                                                <span className="value">{section.section_number}</span>
-                                            </div>
+                                                <div className="course-info">
+                                                    <div className="info-item">
+                                                        <span className="label">Section:</span>
+                                                        <span className="value">{section.section_number || 'N/A'}</span>
+                                                    </div>
 
-                                            <div className="info-item">
-                                                <span className="label">Schedule:</span>
-                                                <div className="value schedule-container">
-                                                    {formatSchedule(section.schedule_json)}
+                                                    <div className="info-item">
+                                                        <span className="label">Schedule:</span>
+                                                        <div className="value schedule-container">
+                                                            {formatSchedule(section.schedule || section.schedule_json)}
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="info-item">
+                                                        <span className="label">Status:</span>
+                                                        <span className={`status-badge ${enrollment.status}`}>
+                                                            {enrollment.status.charAt(0).toUpperCase() + enrollment.status.slice(1)}
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="card-actions">
+                                                    <button
+                                                        className="btn-outline"
+                                                        onClick={() => router.push(`/courses/${course.id}`)}
+                                                    >
+                                                        View Details
+                                                    </button>
+
+                                                    <button
+                                                        className="btn-danger"
+                                                        onClick={() => handleDropCourse(enrollment.id, course.code)}
+                                                        disabled={droppingId === enrollment.id}
+                                                    >
+                                                        {droppingId === enrollment.id ? 'Dropping...' : 'Drop Course'}
+                                                    </button>
                                                 </div>
                                             </div>
-
-                                            <div className="info-item">
-                                                <span className="label">Status:</span>
-                                                <span className={`status-badge ${enrollment.status}`}>
-                                                    {enrollment.status.charAt(0).toUpperCase() + enrollment.status.slice(1)}
-                                                </span>
-                                            </div>
-                                        </div>
-
-                                        <div className="card-actions">
-                                            <button
-                                                className="btn-outline"
-                                                onClick={() => router.push(`/courses/${course.id}`)}
-                                            >
-                                                View Details
-                                            </button>
-
-                                            <button
-                                                className="btn-danger"
-                                                onClick={() => handleDropCourse(enrollment.id, course.code)}
-                                                disabled={droppingId === enrollment.id}
-                                            >
-                                                {droppingId === enrollment.id ? 'Dropping...' : 'Drop Course'}
-                                            </button>
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
-                    )}
+
+                        {/* Right Column: Available Courses */}
+                        <div className="right-column">
+                            <h2 className="section-title">Add More Courses</h2>
+                            
+                            <div className="search-box">
+                                <input
+                                    type="text"
+                                    placeholder="Search courses..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="search-input"
+                                />
+                            </div>
+
+                            {loadingAvailable ? (
+                                <div className="loading-state-small">
+                                    <div className="spinner-small"></div>
+                                    <p>Loading courses...</p>
+                                </div>
+                            ) : availableCourses.length === 0 ? (
+                                <div className="empty-state-small">
+                                    <p>No available courses found.</p>
+                                </div>
+                            ) : (
+                                <div className="available-courses-list">
+                                    {availableCourses.map((course) => (
+                                        <div key={course.id} className="available-course-card">
+                                            <div className="available-course-header">
+                                                <div className="course-code-small">{course.code}</div>
+                                                <div className="credits-small">{course.credits} Credits</div>
+                                            </div>
+                                            <h4 className="course-name-small">{course.name}</h4>
+                                            {course.department && (
+                                                <p className="department-name">{course.department.name}</p>
+                                            )}
+                                            
+                                            {course.sections.map((section) => (
+                                                <div key={section.id} className="section-item">
+                                                    <div className="section-info">
+                                                        <span className="section-label">Section {section.section_number}</span>
+                                                        <span className="schedule-text">
+                                                            {formatSchedule(section.schedule)}
+                                                        </span>
+                                                        <span className="seats-info">
+                                                            {section.available_seats} seats available
+                                                        </span>
+                                                    </div>
+                                                    <button
+                                                        className="btn-enroll"
+                                                        onClick={() => handleEnroll(section.id, course.name, section.section_number)}
+                                                        disabled={enrollingId === section.id}
+                                                    >
+                                                        {enrollingId === section.id ? 'Enrolling...' : 'Enroll'}
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -231,9 +394,191 @@ export default function MyCourses() {
         }
 
         .content-wrapper {
-          max-width: 1200px;
+          max-width: 1400px;
           margin: 0 auto;
           padding: 30px 20px;
+        }
+
+        .two-column-layout {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 30px;
+          margin-top: 30px;
+        }
+
+        .left-column,
+        .right-column {
+          display: flex;
+          flex-direction: column;
+        }
+
+        .section-title {
+          font-size: 1.5rem;
+          color: #2d3748;
+          margin-bottom: 20px;
+          font-weight: 600;
+        }
+
+        .search-box {
+          margin-bottom: 20px;
+        }
+
+        .search-input {
+          width: 100%;
+          padding: 12px 16px;
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
+          font-size: 0.95rem;
+          transition: border-color 0.2s;
+        }
+
+        .search-input:focus {
+          outline: none;
+          border-color: #667eea;
+        }
+
+        .available-courses-list {
+          display: flex;
+          flex-direction: column;
+          gap: 15px;
+          max-height: calc(100vh - 300px);
+          overflow-y: auto;
+          padding-right: 10px;
+        }
+
+        .available-course-card {
+          background: white;
+          border-radius: 10px;
+          padding: 18px;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+          border: 1px solid #e2e8f0;
+        }
+
+        .available-course-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 10px;
+        }
+
+        .course-code-small {
+          background: #ebf8ff;
+          color: #2b6cb0;
+          padding: 4px 10px;
+          border-radius: 15px;
+          font-weight: 600;
+          font-size: 0.85rem;
+        }
+
+        .credits-small {
+          background: #f7fafc;
+          color: #718096;
+          padding: 4px 8px;
+          border-radius: 6px;
+          font-size: 0.8rem;
+        }
+
+        .course-name-small {
+          font-size: 1rem;
+          color: #2d3748;
+          margin-bottom: 5px;
+          font-weight: 600;
+        }
+
+        .department-name {
+          font-size: 0.85rem;
+          color: #718096;
+          margin-bottom: 12px;
+        }
+
+        .section-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 10px;
+          background: #f7fafc;
+          border-radius: 6px;
+          margin-top: 8px;
+        }
+
+        .section-info {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          flex: 1;
+        }
+
+        .section-label {
+          font-weight: 600;
+          font-size: 0.9rem;
+          color: #4a5568;
+        }
+
+        .schedule-text {
+          font-size: 0.85rem;
+          color: #718096;
+        }
+
+        .seats-info {
+          font-size: 0.8rem;
+          color: #48bb78;
+          font-weight: 500;
+        }
+
+        .btn-enroll {
+          background: #667eea;
+          color: white;
+          border: none;
+          padding: 8px 16px;
+          border-radius: 6px;
+          font-size: 0.9rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: background-color 0.2s;
+          white-space: nowrap;
+        }
+
+        .btn-enroll:hover:not(:disabled) {
+          background: #5a67d8;
+        }
+
+        .btn-enroll:disabled {
+          background: #cbd5e0;
+          cursor: not-allowed;
+        }
+
+        .loading-state-small {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 40px;
+        }
+
+        .spinner-small {
+          border: 3px solid #f3f3f3;
+          border-top: 3px solid #667eea;
+          border-radius: 50%;
+          width: 30px;
+          height: 30px;
+          animation: spin 1s linear infinite;
+          margin-bottom: 15px;
+        }
+
+        .empty-state-small {
+          text-align: center;
+          padding: 40px;
+          color: #718096;
+        }
+
+        @media (max-width: 1024px) {
+          .two-column-layout {
+            grid-template-columns: 1fr;
+          }
+          
+          .available-courses-list {
+            max-height: 500px;
+          }
         }
 
         .header-section {

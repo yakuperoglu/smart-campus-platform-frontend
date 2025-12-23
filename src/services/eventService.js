@@ -148,6 +148,53 @@ const eventService = {
         }
     },
 
+    // ==================== Survey Methods ====================
+
+    /**
+     * Get survey for an event
+     * @param {string} eventId
+     * @returns {Promise<{data: Object}>}
+     */
+    async getSurvey(eventId) {
+        try {
+            const response = await api.get(`/events/${eventId}/survey`);
+            return response.data;
+        } catch (error) {
+            // Return null if not found instead of throwing, to handle UI gracefully
+            if (error.response?.status === 404) return null;
+            throw this._handleError(error);
+        }
+    },
+
+    /**
+     * Submit survey response
+     * @param {string} eventId
+     * @param {Object} responses - Key-value pair of responses
+     * @returns {Promise<Object>}
+     */
+    async submitSurvey(eventId, responses) {
+        try {
+            const response = await api.post(`/events/${eventId}/survey/response`, { responses });
+            return response.data;
+        } catch (error) {
+            throw this._handleError(error);
+        }
+    },
+
+    /**
+     * Get survey results (admin/organizer)
+     * @param {string} eventId
+     * @returns {Promise<{data: Object}>}
+     */
+    async getSurveyResults(eventId) {
+        try {
+            const response = await api.get(`/events/${eventId}/survey/results`);
+            return response.data;
+        } catch (error) {
+            throw this._handleError(error);
+        }
+    },
+
     /**
      * Update an event (admin/staff/faculty only)
      * @param {string} eventId - Event ID
