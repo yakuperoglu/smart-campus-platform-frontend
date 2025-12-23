@@ -222,19 +222,21 @@ export default function Dashboard() {
               </div>
             )}
 
-            <div className="feature-card">
-              <div className="feature-icon">🍽️</div>
-              <h4>Meals</h4>
-              <p>Reserve your meals</p>
-              <span className="coming-soon">Coming Soon</span>
-            </div>
+            <Link href="/meals" style={{ textDecoration: 'none' }} prefetch={false}>
+              <div className="feature-card" style={{ cursor: 'pointer' }}>
+                <div className="feature-icon">🍽️</div>
+                <h4>Meals</h4>
+                <p>Reserve your meals</p>
+              </div>
+            </Link>
 
-            <div className="feature-card">
-              <div className="feature-icon">🎫</div>
-              <h4>Events</h4>
-              <p>Campus events and activities</p>
-              <span className="coming-soon">Coming Soon</span>
-            </div>
+            <Link href="/events" style={{ textDecoration: 'none' }} prefetch={false}>
+              <div className="feature-card" style={{ cursor: 'pointer' }}>
+                <div className="feature-icon">🎫</div>
+                <h4>Events</h4>
+                <p>Campus events and activities</p>
+              </div>
+            </Link>
 
             {/* Admin-specific cards */}
             {userData?.role === 'admin' && (
