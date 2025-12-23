@@ -1,11 +1,20 @@
 /**
-
  * Event Detail Page
-
  * 
-
  * Full event details with registration and ticket modal.
+ */
+import { useState, useEffect, useContext } from 'react';
+import { useRouter } from 'next/router';
+import Head from 'next/head';
+import Link from 'next/link';
+import { QRCodeSVG } from 'qrcode.react';
+import Navbar from '../../components/Navbar';
+import { AuthContext } from '../../context/AuthContext';
+import api from '../../config/api';
 
+export default function EventDetail() {
+    const router = useRouter();
+    const { id } = router.query;
     const { user, loading: authLoading } = useContext(AuthContext);
 
 
@@ -328,465 +337,465 @@
 
                 {/* Back Link */}
 
-<Link href="/events" style={styles.backLink}>
+                <Link href="/events" style={styles.backLink}>
 
-    ← Back to Events
+                    ← Back to Events
 
-</Link>
+                </Link>
 
 
 
-{/* Alerts */ }
+                {/* Alerts */}
 
-{
-    error && (
+                {
+                    error && (
 
-        <div style={styles.errorAlert}>
+                        <div style={styles.errorAlert}>
 
-            <span>⚠️ {error}</span>
+                            <span>⚠️ {error}</span>
 
-            <button onClick={() => setError(null)} style={styles.alertClose}>×</button>
+                            <button onClick={() => setError(null)} style={styles.alertClose}>×</button>
 
-        </div>
+                        </div>
 
-    )
-}
+                    )
+                }
 
-{
-    success && (
+                {
+                    success && (
 
-        <div style={styles.successAlert}>
+                        <div style={styles.successAlert}>
 
-            <span>✓ {success}</span>
+                            <span>✓ {success}</span>
 
-            <button onClick={() => setSuccess(null)} style={styles.alertClose}>×</button>
+                            <button onClick={() => setSuccess(null)} style={styles.alertClose}>×</button>
 
-        </div>
+                        </div>
 
-    )
-}
+                    )
+                }
 
 
 
-<div style={styles.content}>
+                <div style={styles.content}>
 
-    {/* Main Content */}
+                    {/* Main Content */}
 
-    <div style={styles.mainCol}>
+                    <div style={styles.mainCol}>
 
-        {/* Header Image */}
+                        {/* Header Image */}
 
-        <div style={{
+                        <div style={{
 
-            ...styles.headerImage,
+                            ...styles.headerImage,
 
-            backgroundImage: event.image_url ? `url(${event.image_url})` : 'none',
+                            backgroundImage: event.image_url ? `url(${event.image_url})` : 'none',
 
-            backgroundColor: event.image_url ? 'transparent' : catData.color
+                            backgroundColor: event.image_url ? 'transparent' : catData.color
 
-        }}>
+                        }}>
 
-            {!event.image_url && (
+                            {!event.image_url && (
 
-                <span style={styles.headerIcon}>{catData.icon}</span>
-
-            )}
-
-            {isPast && <span style={styles.pastBadge}>Event Ended</span>}
-
-        </div>
-
-
-
-        {/* Event Info */}
-
-        <div style={styles.eventInfo}>
-
-            <div style={styles.categoryTag}>
-
-                {catData.icon} {event.category}
-
-            </div>
-
-
-
-            <h1 style={styles.eventTitle}>{event.title}</h1>
-
-
-
-            <div style={styles.metaRow}>
-
-                <div style={styles.metaItem}>
-
-                    <span style={styles.metaIcon}>📅</span>
-
-                    <span>{formatDate(event.date)}</span>
-
-                </div>
-
-                {event.end_date && (
-
-                    <div style={styles.metaItem}>
-
-                        <span style={styles.metaIcon}>🏁</span>
-
-                        <span>Until {formatDate(event.end_date)}</span>
-
-                    </div>
-
-                )}
-
-                <div style={styles.metaItem}>
-
-                    <span style={styles.metaIcon}>📍</span>
-
-                    <span>{event.location || 'To be announced'}</span>
-
-                </div>
-
-            </div>
-
-
-
-            <div style={styles.description}>
-
-                <h3 style={styles.sectionLabel}>About this event</h3>
-
-                <p style={styles.descText}>{event.description || 'No description available.'}</p>
-
-            </div>
-
-
-
-            {/* Organizer */}
-
-            {event.organizer && (
-
-                <div style={styles.organizerSection}>
-
-                    <h3 style={styles.sectionLabel}>Organized by</h3>
-
-                    <p>{event.organizer}</p>
-
-                </div>
-
-            )}
-
-        </div>
-
-    </div>
-
-
-
-    {/* Sidebar */}
-
-    <div style={styles.sidebar}>
-
-        <div style={styles.sidebarCard}>
-
-            {/* Price */}
-
-            <div style={styles.priceSection}>
-
-                <span style={styles.priceLabel}>
-
-                    {event.is_paid ? 'Ticket Price' : 'Free Event'}
-
-                </span>
-
-                <span style={styles.priceAmount}>
-
-                    {event.is_paid ? `${event.price} TRY` : 'FREE'}
-
-                </span>
-
-            </div>
-
-
-
-            {/* Capacity */}
-
-            <div style={styles.capacitySection}>
-
-                <div style={styles.capacityBar}>
-
-                    <div
-
-                        style={{
-
-                            ...styles.capacityFill,
-
-                            width: `${Math.min((event.registered_count / event.capacity) * 100, 100)}%`,
-
-                            backgroundColor: isFull ? '#EF4444' : catData.color
-
-                        }}
-
-                    ></div>
-
-                </div>
-
-                <div style={styles.capacityText}>
-
-                    <span>{event.registered_count || 0} / {event.capacity}</span>
-
-                    <span style={{ color: isFull ? '#EF4444' : '#10B981' }}>
-
-                        {isFull ? 'Full' : `${spotsLeft} spots left`}
-
-                    </span>
-
-                </div>
-
-            </div>
-
-
-
-            {/* Balance Warning for Paid Events */}
-
-            {event.is_paid && user && !isRegistered && (
-
-                <div style={{
-
-                    ...styles.balanceInfo,
-
-                    backgroundColor: walletBalance >= event.price ? '#F0FDF4' : '#FEF2F2',
-
-                    borderColor: walletBalance >= event.price ? '#BBF7D0' : '#FECACA'
-
-                }}>
-
-                    <span>Your balance: {walletBalance.toFixed(2)} TRY</span>
-
-                    {walletBalance < event.price && (
-
-                        <Link href="/wallet" style={styles.topUpLink}>Top up →</Link>
-
-                    )}
-
-                </div>
-
-            )}
-
-
-
-            {/* Action Buttons */}
-
-            {!isPast && (
-
-                <div style={styles.actionSection}>
-
-                    {isRegistered ? (
-
-                        <>
-
-                            <button
-
-                                onClick={() => setShowTicketModal(true)}
-
-                                style={styles.ticketBtn}
-
-                            >
-
-                                🎫 View My Ticket
-
-                            </button>
-
-                            <button
-
-                                onClick={handleCancelRegistration}
-
-                                style={styles.cancelBtn}
-
-                            >
-
-                                Cancel Registration
-
-                            </button>
-
-                            {isWaitlisted && (
-
-                                <p style={styles.waitlistNote}>
-
-                                    ⏳ You're on the waitlist. We'll notify you if a spot opens up.
-
-                                </p>
+                                <span style={styles.headerIcon}>{catData.icon}</span>
 
                             )}
 
-                        </>
+                            {isPast && <span style={styles.pastBadge}>Event Ended</span>}
 
-                    ) : (
+                        </div>
 
-                        <button
 
-                            onClick={handleRegister}
 
-                            disabled={registering || (event.is_paid && walletBalance < event.price)}
+                        {/* Event Info */}
 
-                            style={{
+                        <div style={styles.eventInfo}>
 
-                                ...styles.registerBtn,
+                            <div style={styles.categoryTag}>
 
-                                opacity: (registering || (event.is_paid && walletBalance < event.price)) ? 0.6 : 1
+                                {catData.icon} {event.category}
 
-                            }}
+                            </div>
 
-                        >
 
-                            {registering ? 'Processing...' : isFull ? 'Join Waitlist' : 'Register Now'}
 
-                        </button>
+                            <h1 style={styles.eventTitle}>{event.title}</h1>
 
-                    )}
+
+
+                            <div style={styles.metaRow}>
+
+                                <div style={styles.metaItem}>
+
+                                    <span style={styles.metaIcon}>📅</span>
+
+                                    <span>{formatDate(event.date)}</span>
+
+                                </div>
+
+                                {event.end_date && (
+
+                                    <div style={styles.metaItem}>
+
+                                        <span style={styles.metaIcon}>🏁</span>
+
+                                        <span>Until {formatDate(event.end_date)}</span>
+
+                                    </div>
+
+                                )}
+
+                                <div style={styles.metaItem}>
+
+                                    <span style={styles.metaIcon}>📍</span>
+
+                                    <span>{event.location || 'To be announced'}</span>
+
+                                </div>
+
+                            </div>
+
+
+
+                            <div style={styles.description}>
+
+                                <h3 style={styles.sectionLabel}>About this event</h3>
+
+                                <p style={styles.descText}>{event.description || 'No description available.'}</p>
+
+                            </div>
+
+
+
+                            {/* Organizer */}
+
+                            {event.organizer && (
+
+                                <div style={styles.organizerSection}>
+
+                                    <h3 style={styles.sectionLabel}>Organized by</h3>
+
+                                    <p>{event.organizer.name || event.organizer.email}</p>
+
+                                </div>
+
+                            )}
+
+                        </div>
+
+                    </div>
+
+
+
+                    {/* Sidebar */}
+
+                    <div style={styles.sidebar}>
+
+                        <div style={styles.sidebarCard}>
+
+                            {/* Price */}
+
+                            <div style={styles.priceSection}>
+
+                                <span style={styles.priceLabel}>
+
+                                    {event.is_paid ? 'Ticket Price' : 'Free Event'}
+
+                                </span>
+
+                                <span style={styles.priceAmount}>
+
+                                    {event.is_paid ? `${event.price} TRY` : 'FREE'}
+
+                                </span>
+
+                            </div>
+
+
+
+                            {/* Capacity */}
+
+                            <div style={styles.capacitySection}>
+
+                                <div style={styles.capacityBar}>
+
+                                    <div
+
+                                        style={{
+
+                                            ...styles.capacityFill,
+
+                                            width: `${Math.min((event.registered_count / event.capacity) * 100, 100)}%`,
+
+                                            backgroundColor: isFull ? '#EF4444' : catData.color
+
+                                        }}
+
+                                    ></div>
+
+                                </div>
+
+                                <div style={styles.capacityText}>
+
+                                    <span>{event.registered_count || 0} / {event.capacity}</span>
+
+                                    <span style={{ color: isFull ? '#EF4444' : '#10B981' }}>
+
+                                        {isFull ? 'Full' : `${spotsLeft} spots left`}
+
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+
+
+                            {/* Balance Warning for Paid Events */}
+
+                            {event.is_paid && user && !isRegistered && (
+
+                                <div style={{
+
+                                    ...styles.balanceInfo,
+
+                                    backgroundColor: walletBalance >= event.price ? '#F0FDF4' : '#FEF2F2',
+
+                                    borderColor: walletBalance >= event.price ? '#BBF7D0' : '#FECACA'
+
+                                }}>
+
+                                    <span>Your balance: {walletBalance.toFixed(2)} TRY</span>
+
+                                    {walletBalance < event.price && (
+
+                                        <Link href="/wallet" style={styles.topUpLink}>Top up →</Link>
+
+                                    )}
+
+                                </div>
+
+                            )}
+
+
+
+                            {/* Action Buttons */}
+
+                            {!isPast && (
+
+                                <div style={styles.actionSection}>
+
+                                    {isRegistered ? (
+
+                                        <>
+
+                                            <button
+
+                                                onClick={() => setShowTicketModal(true)}
+
+                                                style={styles.ticketBtn}
+
+                                            >
+
+                                                🎫 View My Ticket
+
+                                            </button>
+
+                                            <button
+
+                                                onClick={handleCancelRegistration}
+
+                                                style={styles.cancelBtn}
+
+                                            >
+
+                                                Cancel Registration
+
+                                            </button>
+
+                                            {isWaitlisted && (
+
+                                                <p style={styles.waitlistNote}>
+
+                                                    ⏳ You're on the waitlist. We'll notify you if a spot opens up.
+
+                                                </p>
+
+                                            )}
+
+                                        </>
+
+                                    ) : (
+
+                                        <button
+
+                                            onClick={handleRegister}
+
+                                            disabled={registering || (event.is_paid && walletBalance < event.price)}
+
+                                            style={{
+
+                                                ...styles.registerBtn,
+
+                                                opacity: (registering || (event.is_paid && walletBalance < event.price)) ? 0.6 : 1
+
+                                            }}
+
+                                        >
+
+                                            {registering ? 'Processing...' : isFull ? 'Join Waitlist' : 'Register Now'}
+
+                                        </button>
+
+                                    )}
+
+                                </div>
+
+                            )}
+
+
+
+                            {isPast && (
+
+                                <div style={styles.pastNote}>
+
+                                    This event has already ended.
+
+                                </div>
+
+                            )}
+
+                        </div>
+
+                    </div>
 
                 </div>
-
-            )}
-
-
-
-            {isPast && (
-
-                <div style={styles.pastNote}>
-
-                    This event has already ended.
-
-                </div>
-
-            )}
-
-        </div>
-
-    </div>
-
-</div>
 
             </div >
 
 
 
-    {/* Ticket Modal */ }
+            {/* Ticket Modal */}
 
-{
-    showTicketModal && registration && (
+            {
+                showTicketModal && registration && (
 
-        <div style={styles.modalOverlay} onClick={() => setShowTicketModal(false)}>
+                    <div style={styles.modalOverlay} onClick={() => setShowTicketModal(false)}>
 
-            <div style={styles.ticketModal} onClick={e => e.stopPropagation()}>
+                        <div style={styles.ticketModal} onClick={e => e.stopPropagation()}>
 
-                <div style={styles.ticketHeader}>
+                            <div style={styles.ticketHeader}>
 
-                    <div style={{ ...styles.ticketBrand, backgroundColor: catData.color }}>
+                                <div style={{ ...styles.ticketBrand, backgroundColor: catData.color }}>
 
-                        <span>{catData.icon}</span>
+                                    <span>{catData.icon}</span>
 
-                        <span>Smart Campus</span>
+                                    <span>Smart Campus</span>
 
-                    </div>
+                                </div>
 
-                    <button style={styles.modalClose} onClick={() => setShowTicketModal(false)}>×</button>
+                                <button style={styles.modalClose} onClick={() => setShowTicketModal(false)}>×</button>
 
-                </div>
-
-
-
-                <div style={styles.ticketBody}>
-
-                    <h2 style={styles.ticketTitle}>{event.title}</h2>
+                            </div>
 
 
 
-                    <div style={styles.ticketMeta}>
+                            <div style={styles.ticketBody}>
 
-                        <div style={styles.ticketMetaItem}>
+                                <h2 style={styles.ticketTitle}>{event.title}</h2>
 
-                            <span style={styles.ticketLabel}>Date</span>
 
-                            <span style={styles.ticketValue}>{formatDate(event.date)}</span>
+
+                                <div style={styles.ticketMeta}>
+
+                                    <div style={styles.ticketMetaItem}>
+
+                                        <span style={styles.ticketLabel}>Date</span>
+
+                                        <span style={styles.ticketValue}>{formatDate(event.date)}</span>
+
+                                    </div>
+
+                                    <div style={styles.ticketMetaItem}>
+
+                                        <span style={styles.ticketLabel}>Location</span>
+
+                                        <span style={styles.ticketValue}>{event.location || 'TBA'}</span>
+
+                                    </div>
+
+                                    <div style={styles.ticketMetaItem}>
+
+                                        <span style={styles.ticketLabel}>Attendee</span>
+
+                                        <span style={styles.ticketValue}>{user?.first_name} {user?.last_name}</span>
+
+                                    </div>
+
+                                </div>
+
+
+
+                                <div style={styles.qrSection}>
+
+                                    {registration.qr_code ? (
+
+                                        <QRCodeSVG
+
+                                            value={registration.qr_code}
+
+                                            size={200}
+
+                                            level="H"
+
+                                            includeMargin={true}
+
+                                        />
+
+                                    ) : (
+
+                                        <div style={styles.noQr}>QR code will be available soon</div>
+
+                                    )}
+
+                                </div>
+
+
+
+                                <p style={styles.ticketHint}>Show this QR code at the entrance</p>
+
+
+
+                                <div style={styles.ticketStatus}>
+
+                                    <span style={{
+
+                                        ...styles.statusBadge,
+
+                                        backgroundColor: registration.status === 'waitlisted' ? '#FEF3C7' : '#D1FAE5',
+
+                                        color: registration.status === 'waitlisted' ? '#92400E' : '#065F46'
+
+                                    }}>
+
+                                        {registration.status === 'waitlisted' ? '⏳ Waitlisted' : '✓ Confirmed'}
+
+                                    </span>
+
+                                </div>
+
+                            </div>
 
                         </div>
 
-                        <div style={styles.ticketMetaItem}>
-
-                            <span style={styles.ticketLabel}>Location</span>
-
-                            <span style={styles.ticketValue}>{event.location || 'TBA'}</span>
-
-                        </div>
-
-                        <div style={styles.ticketMetaItem}>
-
-                            <span style={styles.ticketLabel}>Attendee</span>
-
-                            <span style={styles.ticketValue}>{user?.first_name} {user?.last_name}</span>
-
-                        </div>
-
                     </div>
 
-
-
-                    <div style={styles.qrSection}>
-
-                        {registration.qr_code ? (
-
-                            <QRCodeSVG
-
-                                value={registration.qr_code}
-
-                                size={200}
-
-                                level="H"
-
-                                includeMargin={true}
-
-                            />
-
-                        ) : (
-
-                            <div style={styles.noQr}>QR code will be available soon</div>
-
-                        )}
-
-                    </div>
+                )
+            }
 
 
 
-                    <p style={styles.ticketHint}>Show this QR code at the entrance</p>
-
-
-
-                    <div style={styles.ticketStatus}>
-
-                        <span style={{
-
-                            ...styles.statusBadge,
-
-                            backgroundColor: registration.status === 'waitlisted' ? '#FEF3C7' : '#D1FAE5',
-
-                            color: registration.status === 'waitlisted' ? '#92400E' : '#065F46'
-
-                        }}>
-
-                            {registration.status === 'waitlisted' ? '⏳ Waitlisted' : '✓ Confirmed'}
-
-                        </span>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-        </div>
-
-    )
-}
-
-
-
-<style jsx global>{`
+            <style jsx global>{`
 
         @keyframes spin {
 
@@ -803,6 +812,7 @@
     );
 
 }
+
 
 
 
