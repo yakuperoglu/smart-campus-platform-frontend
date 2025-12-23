@@ -479,17 +479,13 @@ export default function EventDetail() {
 
                             {/* Organizer */}
 
-                            {event.organizer && (
+                            <div style={styles.organizerSection}>
 
-                                <div style={styles.organizerSection}>
+                                <h3 style={styles.sectionLabel}>Organized by</h3>
 
-                                    <h3 style={styles.sectionLabel}>Organized by</h3>
+                                <p>{event.organizer?.name || event.organizer?.email || 'Event Organizer'}</p>
 
-                                    <p>{event.organizer.name || event.organizer.email}</p>
-
-                                </div>
-
-                            )}
+                            </div>
 
                         </div>
 
