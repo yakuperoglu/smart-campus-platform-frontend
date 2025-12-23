@@ -31,12 +31,56 @@ api.interceptors.response.use(
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
-      // Here you might implement refresh token logic
-      // For now, let's just clear storage and redirect to login if completely unauthorized
-      // if (typeof window !== 'undefined') {
-      //     localStorage.removeItem('accessToken');
-      //     window.location.href = '/login';
-      // }
+
+      if (typeof window !== 'undefined') {
+        const refreshToken = localStorage.getItem('refreshToken');
+        
+        // Try to refresh the token
+        if (refreshToken) {
+          try {
+            // Create a new axios instance without interceptors to avoid infinite loop
+            const refreshAxios = axios.create({
+              baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000/api/v1',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+            });
+            const refreshResponse = await refreshAxios.post('/auth/refresh', { refreshToken });
+
+            const { accessToken, refreshToken: newRefreshToken } = refreshResponse.data.data.tokens;
+            
+            // Update tokens in localStorage
+            localStorage.setItem('accessToken', accessToken);
+            localStorage.setItem('refreshToken', newRefreshToken);
+
+            // Update the original request with new token
+            originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+            
+            // Retry the original request
+            return api(originalRequest);
+          } catch (refreshError) {
+            // Refresh token is invalid or expired, clear storage and redirect to login
+            console.error('Token refresh failed:', refreshError);
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
+            localStorage.removeItem('user');
+            
+            // Only redirect if we're not already on the login page
+            if (window.location.pathname !== '/login') {
+              window.location.href = '/login';
+            }
+          }
+        } else {
+          // No refresh token, clear storage and redirect to login
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
+          localStorage.removeItem('user');
+          
+          if (window.location.pathname !== '/login') {
+            window.location.href = '/login';
+          }
+        }
+      }
     }
     return Promise.reject(error);
   }

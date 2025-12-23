@@ -163,7 +163,17 @@ export default function EventDetail() {
 
             console.error('Registration error:', err);
 
-            setError(err.response?.data?.message || 'Registration failed');
+            // Better error messages
+            if (err.response?.status === 401) {
+                setError('Please login to register for events');
+                router.push('/login');
+            } else if (err.response?.status === 400) {
+                setError(err.response?.data?.error?.message || err.response?.data?.message || 'Registration failed. You may already be registered or the event is full.');
+            } else if (err.response?.status === 403) {
+                setError('You do not have permission to register for this event');
+            } else {
+                setError(err.response?.data?.error?.message || err.response?.data?.message || 'Registration failed. Please try again.');
+            }
 
         } finally {
 
