@@ -237,22 +237,78 @@ export default function EventDetail() {
 
         const categories = {
 
-            conference: { icon: '🎤', color: '#8B5CF6' },
+            conference: { icon: '🎤', color: '#3B82F6', gradient: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)' },
 
-            workshop: { icon: '🛠️', color: '#F59E0B' },
+            workshop: { icon: '🛠️', color: '#F59E0B', gradient: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)' },
 
-            seminar: { icon: '📚', color: '#3B82F6' },
+            seminar: { icon: '📚', color: '#10B981', gradient: 'linear-gradient(135deg, #10B981 0%, #059669 100%)' },
 
-            sports: { icon: '⚽', color: '#10B981' },
+            sports: { icon: '⚽', color: '#EF4444', gradient: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)' },
 
-            social: { icon: '🎊', color: '#EC4899' },
+            social: { icon: '🎊', color: '#EC4899', gradient: 'linear-gradient(135deg, #EC4899 0%, #DB2777 100%)' },
 
-            cultural: { icon: '🎭', color: '#6366F1' }
+            cultural: { icon: '🎭', color: '#8B5CF6', gradient: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)' }
 
         };
 
-        return categories[cat] || { icon: '🎉', color: '#8B5CF6' };
+        return categories[cat] || { icon: '🎉', color: '#8B5CF6', gradient: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)' };
 
+    };
+
+    const getEventIcon = (event) => {
+        if (!event) return null;
+        
+        const title = (event.title || '').toLowerCase();
+        const description = (event.description || '').toLowerCase();
+        const text = `${title} ${description}`;
+        
+        // Sports - Tennis
+        if (text.includes('tennis')) return '🎾';
+        // Sports - Basketball
+        if (text.includes('basketball')) return '🏀';
+        // Sports - Volleyball
+        if (text.includes('volleyball')) return '🏐';
+        // Sports - Swimming
+        if (text.includes('swim')) return '🏊';
+        // Sports - Running/Marathon
+        if (text.includes('run') || text.includes('marathon')) return '🏃';
+        // Sports - Cycling
+        if (text.includes('cycl') || text.includes('bike')) return '🚴';
+        // Sports - Golf
+        if (text.includes('golf')) return '⛳';
+        // Sports - Boxing
+        if (text.includes('box')) return '🥊';
+        // Sports - Badminton
+        if (text.includes('badminton')) return '🏸';
+        // Sports - Table Tennis
+        if (text.includes('table tennis') || text.includes('ping pong')) return '🏓';
+        // Sports - Baseball
+        if (text.includes('baseball')) return '⚾';
+        // Sports - American Football
+        if (text.includes('american football') || text.includes('nfl')) return '🏈';
+        // Sports - Rugby
+        if (text.includes('rugby')) return '🏉';
+        // Sports - Cricket
+        if (text.includes('cricket')) return '🏏';
+        // Sports - Hockey
+        if (text.includes('hockey')) return '🏒';
+        // Sports - Ice Hockey
+        if (text.includes('ice hockey')) return '🥅';
+        // Sports - Wrestling
+        if (text.includes('wrestl')) return '🤼';
+        // Sports - Gymnastics
+        if (text.includes('gymnast')) return '🤸';
+        // Sports - Weightlifting
+        if (text.includes('weight') || text.includes('lift')) return '🏋️';
+        // Sports - Football/Soccer
+        if (text.includes('football') || text.includes('soccer')) return '⚽';
+        // Wellness - Yoga
+        if (text.includes('yoga') || text.includes('wellness')) return '🧘';
+        // Sports - Default (if category is sports but no match)
+        if (event.category === 'sports') return '⚽';
+        
+        // Return null to use category default icon
+        return null;
     };
 
 
@@ -399,7 +455,7 @@ export default function EventDetail() {
 
                             ...styles.headerImage,
 
-                            backgroundImage: event.image_url ? `url(${event.image_url})` : 'none',
+                            backgroundImage: event.image_url ? `url(${event.image_url})` : catData.gradient,
 
                             backgroundColor: event.image_url ? 'transparent' : catData.color
 
@@ -407,7 +463,7 @@ export default function EventDetail() {
 
                             {!event.image_url && (
 
-                                <span style={styles.headerIcon}>{catData.icon}</span>
+                                <span style={styles.headerIcon}>{(getEventIcon(event) || catData.icon)}</span>
 
                             )}
 
@@ -423,7 +479,7 @@ export default function EventDetail() {
 
                             <div style={styles.categoryTag}>
 
-                                {catData.icon} {event.category}
+                                {(getEventIcon(event) || catData.icon)} {event.category}
 
                             </div>
 
@@ -694,7 +750,7 @@ export default function EventDetail() {
 
                                 <div style={{ ...styles.ticketBrand, backgroundColor: catData.color }}>
 
-                                    <span>{catData.icon}</span>
+                                    <span>{(getEventIcon(event) || catData.icon)}</span>
 
                                     <span>Smart Campus</span>
 

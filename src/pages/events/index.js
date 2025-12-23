@@ -13,13 +13,13 @@ import { AuthContext } from '../../context/AuthContext';
 import api from '../../config/api';
 
 const CATEGORIES = [
-    { value: '', label: 'All Events', icon: '🎉' },
-    { value: 'conference', label: 'Conference', icon: '🎤' },
-    { value: 'workshop', label: 'Workshop', icon: '🛠️' },
-    { value: 'seminar', label: 'Seminar', icon: '📚' },
-    { value: 'sports', label: 'Sports', icon: '⚽' },
-    { value: 'social', label: 'Social', icon: '🎊' },
-    { value: 'cultural', label: 'Cultural', icon: '🎭' }
+    { value: '', label: 'All Events', icon: '🎉', color: '#8B5CF6', gradient: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)' },
+    { value: 'conference', label: 'Conference', icon: '🎤', color: '#3B82F6', gradient: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)' },
+    { value: 'workshop', label: 'Workshop', icon: '🛠️', color: '#F59E0B', gradient: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)' },
+    { value: 'seminar', label: 'Seminar', icon: '📚', color: '#10B981', gradient: 'linear-gradient(135deg, #10B981 0%, #059669 100%)' },
+    { value: 'sports', label: 'Sports', icon: '⚽', color: '#EF4444', gradient: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)' },
+    { value: 'social', label: 'Social', icon: '🎊', color: '#EC4899', gradient: 'linear-gradient(135deg, #EC4899 0%, #DB2777 100%)' },
+    { value: 'cultural', label: 'Cultural', icon: '🎭', color: '#8B5CF6', gradient: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)' }
 ];
 
 export default function EventsListPage() {
@@ -88,7 +88,61 @@ export default function EventsListPage() {
 
     const getCategoryData = (cat) => {
         const found = CATEGORIES.find(c => c.value === cat);
-        return found || { icon: '🎉', label: cat };
+        return found || { icon: '🎉', label: cat, color: '#8B5CF6', gradient: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)' };
+    };
+
+    const getEventIcon = (event) => {
+        const title = (event.title || '').toLowerCase();
+        const description = (event.description || '').toLowerCase();
+        const text = `${title} ${description}`;
+        
+        // Sports - Tennis
+        if (text.includes('tennis')) return '🎾';
+        // Sports - Basketball
+        if (text.includes('basketball')) return '🏀';
+        // Sports - Volleyball
+        if (text.includes('volleyball')) return '🏐';
+        // Sports - Swimming
+        if (text.includes('swim')) return '🏊';
+        // Sports - Running/Marathon
+        if (text.includes('run') || text.includes('marathon')) return '🏃';
+        // Sports - Cycling
+        if (text.includes('cycl') || text.includes('bike')) return '🚴';
+        // Sports - Golf
+        if (text.includes('golf')) return '⛳';
+        // Sports - Boxing
+        if (text.includes('box')) return '🥊';
+        // Sports - Badminton
+        if (text.includes('badminton')) return '🏸';
+        // Sports - Table Tennis
+        if (text.includes('table tennis') || text.includes('ping pong')) return '🏓';
+        // Sports - Baseball
+        if (text.includes('baseball')) return '⚾';
+        // Sports - American Football
+        if (text.includes('american football') || text.includes('nfl')) return '🏈';
+        // Sports - Rugby
+        if (text.includes('rugby')) return '🏉';
+        // Sports - Cricket
+        if (text.includes('cricket')) return '🏏';
+        // Sports - Hockey
+        if (text.includes('hockey')) return '🏒';
+        // Sports - Ice Hockey
+        if (text.includes('ice hockey')) return '🥅';
+        // Sports - Wrestling
+        if (text.includes('wrestl')) return '🤼';
+        // Sports - Gymnastics
+        if (text.includes('gymnast')) return '🤸';
+        // Sports - Weightlifting
+        if (text.includes('weight') || text.includes('lift')) return '🏋️';
+        // Sports - Football/Soccer
+        if (text.includes('football') || text.includes('soccer')) return '⚽';
+        // Wellness - Yoga
+        if (text.includes('yoga') || text.includes('wellness')) return '🧘';
+        // Sports - Default (if category is sports but no match)
+        if (event.category === 'sports') return '⚽';
+        
+        // Return null to use category default icon
+        return null;
     };
 
     const filteredEvents = events.filter(event => {
@@ -188,6 +242,8 @@ export default function EventsListPage() {
                         <div style={styles.eventGrid}>
                             {upcomingEvents.map(event => {
                                 const catData = getCategoryData(event.category);
+                                const eventIcon = getEventIcon(event);
+                                const displayIcon = eventIcon || catData.icon;
                                 const registered = isRegistered(event.id);
                                 const regStatus = getRegistrationStatus(event.id);
                                 const spotsLeft = event.capacity - (event.registered_count || 0);
@@ -202,11 +258,11 @@ export default function EventsListPage() {
                                         {/* Image/Header */}
                                         <div style={{
                                             ...styles.eventImage,
-                                            backgroundImage: event.image_url ? `url(${event.image_url})` : 'none',
-                                            backgroundColor: event.image_url ? 'transparent' : '#8B5CF6'
+                                            backgroundImage: event.image_url ? `url(${event.image_url})` : catData.gradient,
+                                            backgroundColor: event.image_url ? 'transparent' : catData.color
                                         }}>
                                             {!event.image_url && (
-                                                <span style={styles.eventImageIcon}>{catData.icon}</span>
+                                                <span style={styles.eventImageIcon}>{displayIcon}</span>
                                             )}
 
                                             {/* Badges */}
@@ -266,10 +322,19 @@ export default function EventsListPage() {
                         <div style={styles.eventGrid}>
                             {pastEvents.slice(0, 6).map(event => {
                                 const catData = getCategoryData(event.category);
+                                const eventIcon = getEventIcon(event);
+                                const displayIcon = eventIcon || catData.icon;
                                 return (
                                     <div key={event.id} style={{ ...styles.eventCard, opacity: 0.7 }}>
-                                        <div style={{ ...styles.eventImage, backgroundColor: '#9CA3AF' }}>
-                                            <span style={styles.eventImageIcon}>{catData.icon}</span>
+                                        <div style={{ 
+                                            ...styles.eventImage, 
+                                            backgroundImage: event.image_url ? `url(${event.image_url})` : catData.gradient,
+                                            backgroundColor: event.image_url ? 'transparent' : catData.color,
+                                            opacity: 0.6
+                                        }}>
+                                            {!event.image_url && (
+                                                <span style={styles.eventImageIcon}>{displayIcon}</span>
+                                            )}
                                             <span style={styles.pastBadge}>Ended</span>
                                         </div>
                                         <div style={styles.eventContent}>
