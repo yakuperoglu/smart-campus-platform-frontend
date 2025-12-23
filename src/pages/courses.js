@@ -23,8 +23,8 @@ export default function Courses() {
     const [loading, setLoading] = useState(false);
     const [fetchingCourses, setFetchingCourses] = useState(true);
     const [filters, setFilters] = useState({
-        semester: '',
-        year: ''
+        semester: '', // Start with empty to show all sections
+        year: '' // Start with empty to show all sections
     });
 
     // Fetch courses from API
@@ -33,14 +33,30 @@ export default function Courses() {
             setFetchingCourses(true);
             try {
                 const params = new URLSearchParams();
-                if (filters.semester) params.append('semester', filters.semester);
-                if (filters.year) params.append('year', filters.year);
-                if (searchTerm) params.append('search', searchTerm);
+                // Only send filters if they have values (not empty strings)
+                if (filters.semester && filters.semester.trim() !== '') {
+                    params.append('semester', filters.semester);
+                }
+                if (filters.year && filters.year.toString().trim() !== '') {
+                    params.append('year', filters.year);
+                }
+                if (searchTerm && searchTerm.trim() !== '') {
+                    params.append('search', searchTerm);
+                }
 
                 const response = await api.get(`/courses?${params.toString()}`);
 
                 if (response.data.success) {
-                    setCourses(response.data.data.courses);
+                    const coursesData = response.data.data.courses || [];
+                    setCourses(coursesData);
+                    
+                    // Show helpful message if no courses
+                    if (coursesData.length === 0 && !searchTerm && !filters.semester && !filters.year) {
+                        setFeedback({
+                            type: 'info',
+                            message: 'No courses found. Make sure the database has been seeded with courses and sections.'
+                        });
+                    }
                 }
             } catch (error) {
                 console.error('Error fetching courses:', error);
@@ -248,11 +264,15 @@ export default function Courses() {
                                 <h3>
                                     {searchTerm
                                         ? `No courses found matching "${searchTerm}"`
+                                        : filters.semester || filters.year
+                                        ? `No courses available for ${filters.semester || 'selected semester'} ${filters.year || 'selected year'}`
                                         : 'No courses available with sections'
                                     }
                                 </h3>
                                 <p style={{ color: '#718096', marginTop: '0.5rem' }}>
-                                    Try adjusting your filters or search term.
+                                    {filters.semester || filters.year
+                                        ? `Try selecting "All Semesters" and "All Years" or check if courses have been seeded.`
+                                        : 'Make sure courses and sections have been created. Try running the seed script if this is a fresh database.'}
                                 </p>
                             </div>
                         )}
