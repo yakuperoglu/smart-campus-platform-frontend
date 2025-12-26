@@ -9,6 +9,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
+import AdminDashboard from '../components/admin/AdminDashboard';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -214,12 +215,13 @@ export default function Dashboard() {
                 </div>
               </Link>
             ) : (
-              <div className="feature-card">
-                <div className="feature-icon">✅</div>
-                <h4>Attendance</h4>
-                <p>GPS-based attendance system</p>
-                <span className="coming-soon">Coming Soon</span>
-              </div>
+              <Link href="/admin/analytics/attendance" style={{ textDecoration: 'none' }} prefetch={false}>
+                <div className="feature-card" style={{ cursor: 'pointer' }}>
+                  <div className="feature-icon">✅</div>
+                  <h4>Attendance</h4>
+                  <p>GPS-based attendance system</p>
+                </div>
+              </Link>
             )}
 
             <Link href="/meals" style={{ textDecoration: 'none' }} prefetch={false}>
@@ -241,6 +243,11 @@ export default function Dashboard() {
             {/* Admin-specific cards */}
             {userData?.role === 'admin' && (
               <>
+                {/* Admin Dashboard Stats & Charts */}
+                <div className="full-width-card" style={{ gridColumn: '1 / -1' }}>
+                  <AdminDashboard />
+                </div>
+
                 <Link href="/admin/courses" style={{ textDecoration: 'none' }} prefetch={false}>
                   <div className="feature-card admin-card" style={{ cursor: 'pointer', borderLeft: '4px solid #e74c3c' }}>
                     <div className="feature-icon">📚</div>
@@ -248,18 +255,21 @@ export default function Dashboard() {
                     <p>Create and manage courses & sections</p>
                   </div>
                 </Link>
-                <div className="feature-card admin-card" style={{ borderLeft: '4px solid #e74c3c' }}>
-                  <div className="feature-icon">👥</div>
-                  <h4>User Management</h4>
-                  <p>Manage users and roles</p>
-                  <span className="coming-soon">Coming Soon</span>
-                </div>
-                <div className="feature-card admin-card" style={{ borderLeft: '4px solid #e74c3c' }}>
-                  <div className="feature-icon">📊</div>
-                  <h4>Reports</h4>
-                  <p>View system reports and analytics</p>
-                  <span className="coming-soon">Coming Soon</span>
-                </div>
+                <Link href="/admin/users" style={{ textDecoration: 'none' }} prefetch={false}>
+                  <div className="feature-card admin-card" style={{ cursor: 'pointer', borderLeft: '4px solid #e74c3c' }}>
+                    <div className="feature-icon">👥</div>
+                    <h4>User Management</h4>
+                    <p>Manage users and roles</p>
+                  </div>
+                </Link>
+
+                <Link href="/admin/analytics/attendance" style={{ textDecoration: 'none' }} prefetch={false}>
+                  <div className="feature-card admin-card" style={{ cursor: 'pointer', borderLeft: '4px solid #e74c3c' }}>
+                    <div className="feature-icon">🛡️</div>
+                    <h4>Attendance Intelligence</h4>
+                    <p>Anti-fraud & Attendance Analytics</p>
+                  </div>
+                </Link>
               </>
             )}
           </div>
