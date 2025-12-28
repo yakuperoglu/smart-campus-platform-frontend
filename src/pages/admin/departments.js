@@ -86,40 +86,157 @@ export default function AdminDepartments() {
         }
     };
 
+    const gradients = [
+        'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
+        'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+        'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+        'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+        'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)'
+    ];
+
     if (!user || user.role !== 'admin') {
         return <div>Access denied. Admin only.</div>;
     }
 
     return (
-        <div className="page-container">
+        <div className="admin-page-container">
             <Head>
                 <title>Department Management | Admin | Smart Campus</title>
             </Head>
             <Navbar userData={user} />
 
-            <div className="content">
-                <div className="header-row">
-                    <h1>🏛️ Department Management</h1>
-                    <button className="btn-primary" onClick={() => { resetForm(); setEditingDept(null); setShowForm(true); }}>
+            <div className="admin-content">
+                <div className="admin-header">
+                    <div className="admin-header-left">
+                        <h1>🏛️ Department Management</h1>
+                        <p>Add and manage academic departments</p>
+                    </div>
+                    <button className="btn-primary-gradient" onClick={() => { resetForm(); setEditingDept(null); setShowForm(true); }}>
                         + Add Department
                     </button>
                 </div>
 
                 {feedback.message && (
-                    <div className={`feedback ${feedback.type}`}>
+                    <div style={{
+                        padding: '14px 20px',
+                        borderRadius: '12px',
+                        marginBottom: '20px',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        background: feedback.type === 'success' ? '#d1fae5' : '#fee2e2',
+                        color: feedback.type === 'success' ? '#065f46' : '#991b1b'
+                    }}>
                         {feedback.message}
-                        <button onClick={() => setFeedback({ type: '', message: '' })}>×</button>
+                        <button style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer' }} onClick={() => setFeedback({ type: '', message: '' })}>×</button>
                     </div>
                 )}
 
-                {showForm && (
-                    <div className="modal-overlay">
-                        <div className="modal">
+                {/* Stats */}
+                <div className="stats-row">
+                    <div className="stat-card-modern">
+                        <div className="stat-icon purple">🏛️</div>
+                        <div className="stat-info">
+                            <h3>{departments.length}</h3>
+                            <p>Total Departments</p>
+                        </div>
+                    </div>
+                </div>
+
+                {loading ? (
+                    <div className="loading-state">
+                        <div className="spinner"></div>
+                        <p>Loading departments...</p>
+                    </div>
+                ) : departments.length === 0 ? (
+                    <div className="empty-state">
+                        <div className="empty-state-icon">🏛️</div>
+                        <h3>No departments yet</h3>
+                        <p>Add your first academic department!</p>
+                    </div>
+                ) : (
+                    <div className="cards-grid">
+                        {departments.map((dept, index) => (
+                            <div key={dept.id} className="card-modern" style={{ display: 'flex', flexDirection: 'column' }}>
+                                <div style={{ padding: '24px', flex: 1 }}>
+                                    <div style={{
+                                        display: 'inline-block',
+                                        background: gradients[index % gradients.length],
+                                        color: 'white',
+                                        padding: '8px 16px',
+                                        borderRadius: '8px',
+                                        fontWeight: '700',
+                                        fontSize: '0.9rem',
+                                        marginBottom: '16px'
+                                    }}>
+                                        {dept.code}
+                                    </div>
+                                    <h3 style={{ fontSize: '1.15rem', fontWeight: '600', color: '#1a202c', margin: '0 0 8px' }}>{dept.name}</h3>
+                                    {dept.faculty_name && (
+                                        <p style={{ color: '#64748b', fontSize: '0.9rem', margin: '0 0 16px' }}>{dept.faculty_name}</p>
+                                    )}
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                                        <span style={{ background: '#f1f5f9', padding: '6px 12px', borderRadius: '20px', fontSize: '0.8rem', color: '#475569' }}>
+                                            📚 {dept.courses_count || 0} Courses
+                                        </span>
+                                        <span style={{ background: '#f1f5f9', padding: '6px 12px', borderRadius: '20px', fontSize: '0.8rem', color: '#475569' }}>
+                                            👨‍🎓 {dept.students_count || 0} Students
+                                        </span>
+                                    </div>
+                                </div>
+                                <div style={{ padding: '16px 24px', borderTop: '1px solid #f1f5f9', display: 'flex', gap: '10px' }}>
+                                    <button
+                                        onClick={() => handleEdit(dept)}
+                                        style={{
+                                            flex: 1,
+                                            padding: '10px',
+                                            borderRadius: '8px',
+                                            border: 'none',
+                                            background: '#e0e7ff',
+                                            color: '#4338ca',
+                                            fontWeight: '600',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        Edit
+                                    </button>
+                                    <button
+                                        onClick={() => handleDelete(dept.id)}
+                                        style={{
+                                            flex: 1,
+                                            padding: '10px',
+                                            borderRadius: '8px',
+                                            border: 'none',
+                                            background: '#fee2e2',
+                                            color: '#dc2626',
+                                            fontWeight: '600',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        Delete
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {/* Create/Edit Modal */}
+            {showForm && (
+                <div className="modal-overlay">
+                    <div className="modal-modern">
+                        <div className="modal-header">
                             <h2>{editingDept ? 'Edit Department' : 'Add Department'}</h2>
-                            <form onSubmit={handleSubmit}>
+                            <button className="modal-close" onClick={() => { setShowForm(false); setEditingDept(null); }}>×</button>
+                        </div>
+                        <form onSubmit={handleSubmit}>
+                            <div className="modal-body">
                                 <div className="form-group">
-                                    <label>Department Code *</label>
+                                    <label className="form-label">Department Code *</label>
                                     <input
+                                        className="form-input"
                                         type="text"
                                         value={form.code}
                                         onChange={e => setForm({ ...form, code: e.target.value.toUpperCase() })}
@@ -128,8 +245,9 @@ export default function AdminDepartments() {
                                     />
                                 </div>
                                 <div className="form-group">
-                                    <label>Department Name *</label>
+                                    <label className="form-label">Department Name *</label>
                                     <input
+                                        className="form-input"
                                         type="text"
                                         value={form.name}
                                         onChange={e => setForm({ ...form, name: e.target.value })}
@@ -138,79 +256,24 @@ export default function AdminDepartments() {
                                     />
                                 </div>
                                 <div className="form-group">
-                                    <label>Faculty Name</label>
+                                    <label className="form-label">Faculty Name</label>
                                     <input
+                                        className="form-input"
                                         type="text"
                                         value={form.faculty_name}
                                         onChange={e => setForm({ ...form, faculty_name: e.target.value })}
                                         placeholder="e.g., Engineering Faculty"
                                     />
                                 </div>
-                                <div className="modal-actions">
-                                    <button type="button" className="btn-secondary" onClick={() => { setShowForm(false); setEditingDept(null); }}>Cancel</button>
-                                    <button type="submit" className="btn-primary">{editingDept ? 'Update' : 'Create'}</button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                )}
-
-                {loading ? (
-                    <div className="loading">Loading departments...</div>
-                ) : departments.length === 0 ? (
-                    <div className="empty">No departments found. Add your first department!</div>
-                ) : (
-                    <div className="departments-grid">
-                        {departments.map(dept => (
-                            <div key={dept.id} className="dept-card">
-                                <div className="dept-code">{dept.code}</div>
-                                <h3>{dept.name}</h3>
-                                {dept.faculty_name && <p className="faculty">{dept.faculty_name}</p>}
-                                <div className="dept-stats">
-                                    <span>📚 {dept.courses_count || 0} Courses</span>
-                                    <span>👨‍🎓 {dept.students_count || 0} Students</span>
-                                    <span>👨‍🏫 {dept.faculty_count || 0} Faculty</span>
-                                </div>
-                                <div className="dept-actions">
-                                    <button onClick={() => handleEdit(dept)}>Edit</button>
-                                    <button className="delete" onClick={() => handleDelete(dept.id)}>Delete</button>
-                                </div>
                             </div>
-                        ))}
+                            <div className="modal-footer">
+                                <button type="button" className="btn-secondary" onClick={() => { setShowForm(false); setEditingDept(null); }}>Cancel</button>
+                                <button type="submit" className="btn-primary-gradient">{editingDept ? 'Update' : 'Create'}</button>
+                            </div>
+                        </form>
                     </div>
-                )}
-            </div>
-
-            <style jsx>{`
-                .page-container { background: #f3f4f6; min-height: 100vh; }
-                .content { max-width: 1200px; margin: 20px auto; padding: 20px; }
-                .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-                h1 { font-size: 1.75rem; font-weight: bold; color: #1a202c; }
-                .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: 600; }
-                .btn-secondary { background: #e5e7eb; color: #374151; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; }
-                .feedback { padding: 12px 20px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; }
-                .feedback.success { background: #d1fae5; color: #065f46; }
-                .feedback.error { background: #fee2e2; color: #991b1b; }
-                .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-                .modal { background: white; padding: 30px; border-radius: 12px; width: 100%; max-width: 450px; }
-                .modal h2 { margin-bottom: 20px; }
-                .form-group { margin-bottom: 15px; }
-                .form-group label { display: block; margin-bottom: 5px; font-weight: 500; }
-                .form-group input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; }
-                .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
-                .departments-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
-                .dept-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-                .dept-code { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 6px 14px; border-radius: 6px; font-weight: 700; font-size: 0.9rem; margin-bottom: 10px; }
-                .dept-card h3 { margin: 0 0 5px 0; font-size: 1.1rem; color: #1a202c; }
-                .faculty { color: #6b7280; font-size: 0.9rem; margin: 0 0 15px 0; }
-                .dept-stats { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; }
-                .dept-stats span { background: #f3f4f6; padding: 4px 10px; border-radius: 12px; font-size: 0.8rem; color: #4b5563; }
-                .dept-actions { display: flex; gap: 10px; }
-                .dept-actions button { flex: 1; padding: 8px; border-radius: 6px; cursor: pointer; font-weight: 500; }
-                .dept-actions button:first-child { background: #e0e7ff; color: #3730a3; border: none; }
-                .dept-actions button.delete { background: #fee2e2; color: #991b1b; border: none; }
-                .loading, .empty { text-align: center; padding: 40px; color: #6b7280; }
-            `}</style>
+                </div>
+            )}
         </div>
     );
 }

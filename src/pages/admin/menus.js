@@ -128,114 +128,95 @@ export default function AdminMenus() {
         }
     };
 
+    const getMealTypeIcon = (type) => {
+        switch (type) {
+            case 'breakfast': return '🌅';
+            case 'lunch': return '☀️';
+            case 'dinner': return '🌙';
+            default: return '🍽️';
+        }
+    };
+
     if (!user || user.role !== 'admin') {
         return <div>Access denied. Admin only.</div>;
     }
 
     return (
-        <div className="page-container">
+        <div className="admin-page-container">
             <Head>
                 <title>Menu Management | Admin | Smart Campus</title>
             </Head>
             <Navbar userData={user} />
 
-            <div className="content">
-                <div className="header-row">
-                    <h1>🍽️ Menu Management</h1>
-                    <button className="btn-primary" onClick={() => { resetForm(); setEditingMenu(null); setShowForm(true); }}>
+            <div className="admin-content">
+                <div className="admin-header">
+                    <div className="admin-header-left">
+                        <h1>🍽️ Menu Management</h1>
+                        <p>Create and manage cafeteria menus</p>
+                    </div>
+                    <button className="btn-primary-gradient" onClick={() => { resetForm(); setEditingMenu(null); setShowForm(true); }}>
                         + Create Menu
                     </button>
                 </div>
 
                 {feedback.message && (
-                    <div className={`feedback ${feedback.type}`}>
+                    <div style={{
+                        padding: '14px 20px',
+                        borderRadius: '12px',
+                        marginBottom: '20px',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        background: feedback.type === 'success' ? '#d1fae5' : '#fee2e2',
+                        color: feedback.type === 'success' ? '#065f46' : '#991b1b'
+                    }}>
                         {feedback.message}
-                        <button onClick={() => setFeedback({ type: '', message: '' })}>×</button>
+                        <button style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer' }} onClick={() => setFeedback({ type: '', message: '' })}>×</button>
                     </div>
                 )}
 
-                {showForm && (
-                    <div className="modal-overlay">
-                        <div className="modal">
-                            <h2>{editingMenu ? 'Edit Menu' : 'Create Menu'}</h2>
-                            <form onSubmit={handleSubmit}>
-                                <div className="form-row">
-                                    <div className="form-group">
-                                        <label>Cafeteria *</label>
-                                        <select value={form.cafeteria_id} onChange={e => setForm({ ...form, cafeteria_id: e.target.value })} required>
-                                            <option value="">Select Cafeteria</option>
-                                            {cafeterias.map(c => (
-                                                <option key={c.id} value={c.id}>{c.name}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div className="form-group">
-                                        <label>Date *</label>
-                                        <input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} required />
-                                    </div>
-                                </div>
-                                <div className="form-row">
-                                    <div className="form-group">
-                                        <label>Meal Type</label>
-                                        <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>
-                                            <option value="breakfast">Breakfast</option>
-                                            <option value="lunch">Lunch</option>
-                                            <option value="dinner">Dinner</option>
-                                        </select>
-                                    </div>
-                                    <div className="form-group">
-                                        <label>Price (₺)</label>
-                                        <input type="number" value={form.price} onChange={e => setForm({ ...form, price: parseFloat(e.target.value) })} min="0" step="0.01" />
-                                    </div>
-                                </div>
-                                <div className="form-group">
-                                    <label>Max Reservations</label>
-                                    <input type="number" value={form.max_reservations} onChange={e => setForm({ ...form, max_reservations: parseInt(e.target.value) })} min="1" />
-                                </div>
-                                <div className="form-group">
-                                    <label>Menu Items</label>
-                                    <div className="items-list">
-                                        {form.items_json.map((item, i) => (
-                                            <div key={i} className="item-chip">
-                                                <span>{item.name} ({item.category})</span>
-                                                <button type="button" onClick={() => handleRemoveItem(i)}>×</button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <div className="add-item-row">
-                                        <input type="text" value={newItem.name} onChange={e => setNewItem({ ...newItem, name: e.target.value })} placeholder="Item name" />
-                                        <select value={newItem.category} onChange={e => setNewItem({ ...newItem, category: e.target.value })}>
-                                            <option value="soup">Soup</option>
-                                            <option value="main">Main</option>
-                                            <option value="side">Side</option>
-                                            <option value="dessert">Dessert</option>
-                                            <option value="drink">Drink</option>
-                                        </select>
-                                        <button type="button" onClick={handleAddItem}>Add</button>
-                                    </div>
-                                </div>
-                                <div className="form-group">
-                                    <label>
-                                        <input type="checkbox" checked={form.is_published} onChange={e => setForm({ ...form, is_published: e.target.checked })} />
-                                        {' '}Published
-                                    </label>
-                                </div>
-                                <div className="modal-actions">
-                                    <button type="button" className="btn-secondary" onClick={() => { setShowForm(false); setEditingMenu(null); }}>Cancel</button>
-                                    <button type="submit" className="btn-primary">{editingMenu ? 'Update' : 'Create'}</button>
-                                </div>
-                            </form>
+                {/* Stats */}
+                <div className="stats-row">
+                    <div className="stat-card-modern">
+                        <div className="stat-icon green">🍽️</div>
+                        <div className="stat-info">
+                            <h3>{menus.length}</h3>
+                            <p>Total Menus</p>
                         </div>
                     </div>
-                )}
+                    <div className="stat-card-modern">
+                        <div className="stat-icon blue">🏪</div>
+                        <div className="stat-info">
+                            <h3>{cafeterias.length}</h3>
+                            <p>Cafeterias</p>
+                        </div>
+                    </div>
+                    <div className="stat-card-modern">
+                        <div className="stat-icon purple">✅</div>
+                        <div className="stat-info">
+                            <h3>{menus.filter(m => m.is_published).length}</h3>
+                            <p>Published</p>
+                        </div>
+                    </div>
+                </div>
 
                 {loading ? (
-                    <div className="loading">Loading menus...</div>
+                    <div className="loading-state">
+                        <div className="spinner"></div>
+                        <p>Loading menus...</p>
+                    </div>
                 ) : menus.length === 0 ? (
-                    <div className="empty">No menus found. Create your first menu!</div>
+                    <div className="empty-state">
+                        <div className="empty-state-icon">🍽️</div>
+                        <h3>No menus yet</h3>
+                        <p>Create your first cafeteria menu!</p>
+                    </div>
                 ) : (
-                    <div className="table-wrapper">
-                        <table>
+                    <div className="table-container">
+                        <div className="table-header">
+                            <h2>All Menus</h2>
+                        </div>
+                        <table className="modern-table">
                             <thead>
                                 <tr>
                                     <th>Date</th>
@@ -251,20 +232,26 @@ export default function AdminMenus() {
                             <tbody>
                                 {menus.map(menu => (
                                     <tr key={menu.id}>
-                                        <td>{new Date(menu.date).toLocaleDateString()}</td>
+                                        <td style={{ fontWeight: '600' }}>{new Date(menu.date).toLocaleDateString()}</td>
                                         <td>{menu.cafeteria?.name || '-'}</td>
-                                        <td className="capitalize">{menu.type}</td>
+                                        <td>
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                {getMealTypeIcon(menu.type)} {menu.type}
+                                            </span>
+                                        </td>
                                         <td>{menu.items_json?.length || 0} items</td>
-                                        <td>₺{menu.price}</td>
+                                        <td style={{ fontWeight: '600' }}>₺{menu.price}</td>
                                         <td>{menu.current_reservations || 0}/{menu.max_reservations}</td>
                                         <td>
-                                            <span className={`badge ${menu.is_published ? 'published' : 'draft'}`}>
+                                            <span className={`badge ${menu.is_published ? 'badge-verified' : 'badge-pending'}`}>
                                                 {menu.is_published ? 'Published' : 'Draft'}
                                             </span>
                                         </td>
                                         <td>
-                                            <button className="btn-icon" onClick={() => handleEdit(menu)}>✏️</button>
-                                            <button className="btn-icon delete" onClick={() => handleDelete(menu.id)}>🗑️</button>
+                                            <div className="action-btns">
+                                                <button className="btn-action edit" onClick={() => handleEdit(menu)}>✏️</button>
+                                                <button className="btn-action delete" onClick={() => handleDelete(menu.id)}>🗑️</button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -274,41 +261,102 @@ export default function AdminMenus() {
                 )}
             </div>
 
-            <style jsx>{`
-                .page-container { background: #f3f4f6; min-height: 100vh; }
-                .content { max-width: 1200px; margin: 20px auto; padding: 20px; }
-                .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-                h1 { font-size: 1.75rem; font-weight: bold; color: #1a202c; }
-                .btn-primary { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: 600; }
-                .btn-secondary { background: #e5e7eb; color: #374151; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; }
-                .feedback { padding: 12px 20px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; }
-                .feedback.success { background: #d1fae5; color: #065f46; }
-                .feedback.error { background: #fee2e2; color: #991b1b; }
-                .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-                .modal { background: white; padding: 30px; border-radius: 12px; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; }
-                .form-group { margin-bottom: 15px; }
-                .form-group label { display: block; margin-bottom: 5px; font-weight: 500; }
-                .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; }
-                .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-                .items-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
-                .item-chip { background: #e0e7ff; color: #3730a3; padding: 4px 10px; border-radius: 16px; font-size: 0.85rem; display: flex; align-items: center; gap: 6px; }
-                .item-chip button { background: none; border: none; cursor: pointer; font-size: 1rem; }
-                .add-item-row { display: flex; gap: 8px; }
-                .add-item-row input { flex: 1; }
-                .add-item-row button { background: #4f46e5; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; }
-                .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
-                .table-wrapper { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-                table { width: 100%; border-collapse: collapse; }
-                th { text-align: left; padding: 14px; background: #f9fafb; border-bottom: 2px solid #e5e7eb; color: #6b7280; font-size: 0.85rem; }
-                td { padding: 14px; border-bottom: 1px solid #e5e7eb; }
-                .capitalize { text-transform: capitalize; }
-                .badge { padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; }
-                .badge.published { background: #d1fae5; color: #065f46; }
-                .badge.draft { background: #fef3c7; color: #92400e; }
-                .btn-icon { background: none; border: none; cursor: pointer; font-size: 1.1rem; padding: 5px; }
-                .btn-icon.delete:hover { color: #ef4444; }
-                .loading, .empty { text-align: center; padding: 40px; color: #6b7280; }
-            `}</style>
+            {/* Create/Edit Modal */}
+            {showForm && (
+                <div className="modal-overlay">
+                    <div className="modal-modern" style={{ maxWidth: '640px' }}>
+                        <div className="modal-header">
+                            <h2>{editingMenu ? 'Edit Menu' : 'Create Menu'}</h2>
+                            <button className="modal-close" onClick={() => { setShowForm(false); setEditingMenu(null); }}>×</button>
+                        </div>
+                        <form onSubmit={handleSubmit}>
+                            <div className="modal-body">
+                                <div className="form-row">
+                                    <div className="form-group">
+                                        <label className="form-label">Cafeteria *</label>
+                                        <select className="form-select" value={form.cafeteria_id} onChange={e => setForm({ ...form, cafeteria_id: e.target.value })} required>
+                                            <option value="">Select Cafeteria</option>
+                                            {cafeterias.map(c => (
+                                                <option key={c.id} value={c.id}>{c.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label">Date *</label>
+                                        <input className="form-input" type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} required />
+                                    </div>
+                                </div>
+                                <div className="form-row">
+                                    <div className="form-group">
+                                        <label className="form-label">Meal Type</label>
+                                        <select className="form-select" value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>
+                                            <option value="breakfast">🌅 Breakfast</option>
+                                            <option value="lunch">☀️ Lunch</option>
+                                            <option value="dinner">🌙 Dinner</option>
+                                        </select>
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label">Price (₺)</label>
+                                        <input className="form-input" type="number" value={form.price} onChange={e => setForm({ ...form, price: parseFloat(e.target.value) })} min="0" step="0.01" />
+                                    </div>
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Max Reservations</label>
+                                    <input className="form-input" type="number" value={form.max_reservations} onChange={e => setForm({ ...form, max_reservations: parseInt(e.target.value) })} min="1" />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Menu Items</label>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
+                                        {form.items_json.map((item, i) => (
+                                            <span key={i} style={{
+                                                background: '#e0e7ff',
+                                                color: '#3730a3',
+                                                padding: '6px 12px',
+                                                borderRadius: '20px',
+                                                fontSize: '0.85rem',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '6px'
+                                            }}>
+                                                {item.name}
+                                                <button type="button" onClick={() => handleRemoveItem(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem' }}>×</button>
+                                            </span>
+                                        ))}
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        <input
+                                            className="form-input"
+                                            type="text"
+                                            value={newItem.name}
+                                            onChange={e => setNewItem({ ...newItem, name: e.target.value })}
+                                            placeholder="Item name"
+                                            style={{ flex: 1 }}
+                                        />
+                                        <select className="form-select" value={newItem.category} onChange={e => setNewItem({ ...newItem, category: e.target.value })} style={{ width: '120px' }}>
+                                            <option value="soup">Soup</option>
+                                            <option value="main">Main</option>
+                                            <option value="side">Side</option>
+                                            <option value="dessert">Dessert</option>
+                                            <option value="drink">Drink</option>
+                                        </select>
+                                        <button type="button" onClick={handleAddItem} className="btn-success" style={{ padding: '10px 16px' }}>Add</button>
+                                    </div>
+                                </div>
+                                <div className="form-group">
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                                        <input type="checkbox" checked={form.is_published} onChange={e => setForm({ ...form, is_published: e.target.checked })} />
+                                        <span className="form-label" style={{ margin: 0 }}>Published</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div className="modal-footer">
+                                <button type="button" className="btn-secondary" onClick={() => { setShowForm(false); setEditingMenu(null); }}>Cancel</button>
+                                <button type="submit" className="btn-primary-gradient">{editingMenu ? 'Update Menu' : 'Create Menu'}</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

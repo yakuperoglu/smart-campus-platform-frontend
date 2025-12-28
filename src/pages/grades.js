@@ -40,7 +40,9 @@ export default function MyGrades() {
         const summaryRes = await api.get('/grades/summary');
 
         if (summaryRes.data.success) {
-          setSummary(summaryRes.data.data);
+          // Backend returns: data: { student, summary: {totalCredits, totalEcts, cgpa}, ... }
+          // We need to extract the nested summary object
+          setSummary(summaryRes.data.data.summary);
 
           const gradesRes = await api.get('/grades');
           if (gradesRes.data.success) {

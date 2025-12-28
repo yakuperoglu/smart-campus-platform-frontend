@@ -6,7 +6,7 @@
 import Head from 'next/head';
 import { AuthProvider } from '../context/AuthContext';
 import '../styles/globals.css';
-// Component styles will be moved to Tailwind classes
+import '../styles/admin.css';
 // import '../styles/Auth.css';
 // import '../styles/Dashboard.css';
 // import '../styles/Landing.css';

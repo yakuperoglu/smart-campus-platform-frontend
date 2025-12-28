@@ -77,14 +77,6 @@ export default function AdminPage() {
                             <p>Add and manage departments</p>
                         </div>
                     </Link>
-
-                    <Link href="/excuse-management" className="mgmt-card excuses">
-                        <span className="card-icon">📝</span>
-                        <div className="card-content">
-                            <h3>Excuse Management</h3>
-                            <p>Review and approve student excuses</p>
-                        </div>
-                    </Link>
                 </div>
 
                 <AdminDashboard />

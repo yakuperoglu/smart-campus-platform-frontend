@@ -20,11 +20,14 @@ export default function Sidebar({ user, collapsed, setCollapsed, onLogout }) {
     const menuItems = [
         { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard', roles: ['all'] },
         { icon: BookOpen, label: 'Courses', href: '/courses', roles: ['all'] },
+        { icon: Calendar, label: 'My Schedule', href: '/schedule', roles: ['student'] },
         { icon: MapPin, label: 'Attendance', href: '/attendance', roles: ['student'] },
+        { icon: BookOpen, label: 'Grades', href: '/grades', roles: ['student'] },
+        { icon: BookOpen, label: 'My Excuses', href: '/my-excuses', roles: ['student'] },
         { icon: MapPin, label: 'Open Session', href: '/attendance-open', roles: ['faculty'] },
+        { icon: BookOpen, label: 'Excuse Requests', href: '/excuse-management', roles: ['faculty'] },
         { icon: Utensils, label: 'Meals', href: '/meals', roles: ['all'] },
         { icon: Calendar, label: 'Events', href: '/events', roles: ['all'] },
-        { icon: BookOpen, label: 'Grades', href: '/grades', roles: ['student'] },
         { icon: CreditCard, label: 'Wallet', href: '/wallet', roles: ['all'] },
     ];
 
@@ -66,8 +69,8 @@ export default function Sidebar({ user, collapsed, setCollapsed, onLogout }) {
                             key={item.href}
                             href={item.href}
                             className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors group ${active
-                                    ? 'bg-blue-600 text-white'
-                                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                                ? 'bg-blue-600 text-white'
+                                : 'text-slate-400 hover:bg-slate-800 hover:text-white'
                                 }`}
                         >
                             <item.icon className={`h-5 w-5 ${active ? 'text-white' : 'text-slate-400 group-hover:text-white'}`} />
@@ -91,8 +94,8 @@ export default function Sidebar({ user, collapsed, setCollapsed, onLogout }) {
                                 key={item.href}
                                 href={item.href}
                                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors group ${isActive(item.href)
-                                        ? 'bg-red-900/50 text-red-200'
-                                        : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                                    ? 'bg-red-900/50 text-red-200'
+                                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
                                     }`}
                             >
                                 <item.icon className="h-5 w-5" />

@@ -14,7 +14,7 @@ import { useState, useEffect, useContext, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import dynamic from 'next/dynamic';
-import AppNavbar from '../components/Navbar';
+import DashboardLayout from '../components/layout/DashboardLayout';
 import { AuthContext } from '../context/AuthContext';
 import api from '../config/api';
 import scheduleService from '../services/scheduleService';
@@ -29,7 +29,7 @@ const ScheduleCalendar = dynamic(
 
 export default function SchedulePage() {
     const router = useRouter();
-    const { user, loading: authLoading } = useContext(AuthContext);
+    const { user, logout, loading: authLoading } = useContext(AuthContext);
 
     const [schedule, setSchedule] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -265,132 +265,69 @@ export default function SchedulePage() {
 
 
     if (authLoading) {
-
         return (
-
-            <>
-
+            <DashboardLayout user={user} onLogout={logout}>
                 <Head><title>My Schedule - Smart Campus</title></Head>
-
-                <Navbar />
-
                 <div style={styles.loadingContainer}>
-
                     <div style={styles.spinner}></div>
-
                     <p>Loading...</p>
-
                 </div>
-
-            </>
-
+            </DashboardLayout>
         );
-
     }
 
 
 
     return (
-
-        <>
-
+        <DashboardLayout user={user} onLogout={logout}>
             <Head>
-
                 <title>My Schedule - Smart Campus</title>
-
                 <style>{`
-
           .fc {
-
             font-family: system-ui, -apple-system, sans-serif;
-
           }
-
           .fc-toolbar-title {
-
             font-size: 1.25rem !important;
-
             font-weight: 600 !important;
-
           }
-
           .fc-button {
-
             padding: 0.5rem 1rem !important;
-
             font-size: 0.875rem !important;
-
             border-radius: 8px !important;
-
           }
-
           .fc-button-primary {
-
             background-color: #8B5CF6 !important;
-
             border-color: #8B5CF6 !important;
-
           }
-
           .fc-button-primary:not(:disabled).fc-button-active,
-
           .fc-button-primary:not(:disabled):active {
-
             background-color: #7C3AED !important;
-
           }
-
           .fc-event {
-
             border-radius: 6px !important;
-
             padding: 2px 6px !important;
-
             font-size: 0.75rem !important;
-
             cursor: pointer;
-
           }
-
           .fc-timegrid-slot {
-
             height: 3rem !important;
-
           }
-
           .fc-col-header-cell {
-
             padding: 0.75rem 0 !important;
-
             font-weight: 600 !important;
-
           }
-
           @media (max-width: 768px) {
-
             .fc-toolbar {
-
               flex-direction: column;
-
               gap: 0.5rem;
-
             }
-
             .fc-toolbar-chunk {
-
               display: flex;
-
               justify-content: center;
-
             }
-
           }
-
         `}</style>
-
             </Head>
-
-            <AppNavbar />
 
 
 
@@ -699,22 +636,13 @@ export default function SchedulePage() {
 
             </div>
 
-
-
             <style jsx global>{`
-
         @keyframes spin {
-
           0% { transform: rotate(0deg); }
-
           100% { transform: rotate(360deg); }
-
         }
-
       `}</style>
-
-        </>
-
+        </DashboardLayout>
     );
 
 }
