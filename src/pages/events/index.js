@@ -47,8 +47,11 @@ export default function EventsIndexPage() {
                 api.get('/clubs').catch(() => ({ data: { data: [] } }))
             ]);
 
-            setEvents(eventsRes.data.data || []);
-            setClubs(clubsRes.data.data || []);
+            const eventsData = eventsRes.data.data;
+            const clubsData = clubsRes.data.data;
+
+            setEvents(Array.isArray(eventsData) ? eventsData : []);
+            setClubs(Array.isArray(clubsData) ? clubsData : []);
         } catch (err) {
             console.error('Error fetching events:', err);
             setFeedback({ type: 'error', message: 'Failed to load campus buzz' });
