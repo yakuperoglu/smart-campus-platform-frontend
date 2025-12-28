@@ -39,7 +39,9 @@ export default function AdminEvents() {
         try {
             const res = await api.get('/events');
             if (res.data.success) {
-                setEvents(res.data.data.events || []);
+                // Handle both cases: data could be an array or object with events property
+                const eventsData = Array.isArray(res.data.data) ? res.data.data : (res.data.data || []);
+                setEvents(eventsData);
             }
         } catch (error) {
             console.error('Error fetching events:', error);
