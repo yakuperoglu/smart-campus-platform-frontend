@@ -28,6 +28,7 @@ export default function Sidebar({ user, collapsed, setCollapsed, onLogout }) {
         { icon: BookOpen, label: 'Excuse Requests', href: '/excuse-management', roles: ['faculty'] },
         { icon: Utensils, label: 'Meals', href: '/meals', roles: ['all'] },
         { icon: Calendar, label: 'Events', href: '/events', roles: ['all'] },
+        { icon: GraduationCap, label: 'Clubs', href: '/clubs', roles: ['all'] },
         { icon: CreditCard, label: 'Wallet', href: '/wallet', roles: ['all'] },
     ];
 

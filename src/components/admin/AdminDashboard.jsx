@@ -108,6 +108,21 @@ export default function AdminDashboard() {
                 </div>
             </div>
 
+            <div className="quick-actions" style={{ marginBottom: '2rem' }}>
+                <h3>Quick Management</h3>
+                <div className="action-buttons">
+                    <button onClick={() => router.push('/admin/users')} className="action-btn">
+                        👥 Users
+                    </button>
+                    <button onClick={() => router.push('/admin/courses')} className="action-btn">
+                        📚 Courses
+                    </button>
+                    <button onClick={() => router.push('/admin/clubs')} className="action-btn">
+                        🏢 Clubs
+                    </button>
+                </div>
+            </div>
+
             <div className="quick-actions">
                 <h3>Analytics Reports</h3>
                 <div className="action-buttons">

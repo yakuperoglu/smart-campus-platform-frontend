@@ -68,12 +68,12 @@ export default function EventsIndexPage() {
     };
 
     const filteredEvents = events.filter(e =>
-        e.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        e.description?.toLowerCase().includes(searchTerm.toLowerCase())
+        (e.title?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+        (e.description?.toLowerCase() || '').includes(searchTerm.toLowerCase())
     );
 
     const filteredClubs = clubs.filter(c =>
-        c.name.toLowerCase().includes(searchTerm.toLowerCase())
+        (c.name?.toLowerCase() || '').includes(searchTerm.toLowerCase())
     );
 
     return (
