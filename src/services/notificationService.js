@@ -71,6 +71,30 @@ const notificationService = {
     },
 
     /**
+     * Get notification preferences
+     */
+    async getPreferences() {
+        try {
+            const response = await api.get('/notifications/preferences');
+            return response.data;
+        } catch (error) {
+            throw this._handleError(error);
+        }
+    },
+
+    /**
+     * Update notification preferences
+     */
+    async updatePreferences(preferences) {
+        try {
+            const response = await api.put('/notifications/preferences', preferences);
+            return response.data;
+        } catch (error) {
+            throw this._handleError(error);
+        }
+    },
+
+    /**
      * Handle API errors consistently
      * @private
      */

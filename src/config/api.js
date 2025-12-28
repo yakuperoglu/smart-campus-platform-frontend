@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000/api/v1',
+  baseURL: (process.env.NEXT_PUBLIC_API_URL && process.env.NEXT_PUBLIC_API_URL.trim()) || 'http://localhost:5000/api/v1',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -34,7 +34,7 @@ api.interceptors.response.use(
 
       if (typeof window !== 'undefined') {
         const refreshToken = localStorage.getItem('refreshToken');
-        
+
         // Try to refresh the token
         if (refreshToken) {
           try {
@@ -48,14 +48,14 @@ api.interceptors.response.use(
             const refreshResponse = await refreshAxios.post('/auth/refresh', { refreshToken });
 
             const { accessToken, refreshToken: newRefreshToken } = refreshResponse.data.data.tokens;
-            
+
             // Update tokens in localStorage
             localStorage.setItem('accessToken', accessToken);
             localStorage.setItem('refreshToken', newRefreshToken);
 
             // Update the original request with new token
             originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-            
+
             // Retry the original request
             return api(originalRequest);
           } catch (refreshError) {
@@ -64,7 +64,7 @@ api.interceptors.response.use(
             localStorage.removeItem('accessToken');
             localStorage.removeItem('refreshToken');
             localStorage.removeItem('user');
-            
+
             // Only redirect if we're not already on the login page
             if (window.location.pathname !== '/login') {
               window.location.href = '/login';
@@ -75,7 +75,7 @@ api.interceptors.response.use(
           localStorage.removeItem('accessToken');
           localStorage.removeItem('refreshToken');
           localStorage.removeItem('user');
-          
+
           if (window.location.pathname !== '/login') {
             window.location.href = '/login';
           }

@@ -141,6 +141,11 @@ export default function NotificationsPopover() {
                             </div>
                         ))}
                     </div>
+                    <div className="popover-footer">
+                        <button className="view-all-btn" onClick={() => { setIsOpen(false); router.push('/notifications'); }}>
+                            View All Notifications
+                        </button>
+                    </div>
                 </div>
             )}
 
@@ -276,6 +281,25 @@ export default function NotificationsPopover() {
                     color: #D1D5DB;
                     display: block;
                     margin-bottom: 8px;
+                }
+                .popover-footer {
+                    padding: 8px;
+                    border-top: 1px solid #F3F4F6;
+                    text-align: center;
+                    background: #FAFAFA;
+                }
+                .view-all-btn {
+                    background: none;
+                    border: none;
+                    color: #3B82F6;
+                    font-size: 13px;
+                    font-weight: 500;
+                    cursor: pointer;
+                    width: 100%;
+                    padding: 4px;
+                }
+                .view-all-btn:hover {
+                    text-decoration: underline;
                 }
             `}</style>
         </div>
