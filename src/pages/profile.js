@@ -6,19 +6,22 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+import DashboardLayout from '../components/layout/DashboardLayout';
 import { useAuth } from '../context/AuthContext';
 import api from '../config/api';
+import FeedbackMessage from '../components/FeedbackMessage';
+import { User, Mail, Phone, MapPin, Shield, Camera, Trash2, Key, Info, CheckCircle, AlertTriangle } from 'lucide-react';
 
 export default function Profile() {
   const router = useRouter();
-  const { user, getCurrentUser, loading: authLoading } = useAuth();
+  const { user, logout, getCurrentUser, loading: authLoading } = useAuth();
 
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [hasFetched, setHasFetched] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [message, setMessage] = useState({ type: '', text: '' });
+  const [feedback, setFeedback] = useState({ type: '', message: '' });
 
   const [formData, setFormData] = useState({
     first_name: '',
@@ -36,15 +39,12 @@ export default function Profile() {
   const [sendingVerification, setSendingVerification] = useState(false);
   const [verificationCooldown, setVerificationCooldown] = useState(0);
 
-
-  // Redirect if not authenticated
   useEffect(() => {
     if (!authLoading && !user) {
       router.push('/login');
     }
   }, [authLoading, user, router]);
 
-  // Cooldown timer for verification email
   useEffect(() => {
     let timer;
     if (verificationCooldown > 0) {
@@ -55,7 +55,6 @@ export default function Profile() {
     return () => clearTimeout(timer);
   }, [verificationCooldown]);
 
-  // Fetch user profile ONLY ONCE when user is available
   useEffect(() => {
     const fetchProfile = async () => {
       if (user && !hasFetched && !authLoading) {
@@ -79,36 +78,30 @@ export default function Profile() {
 
     fetchProfile();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, authLoading, hasFetched]); // getCurrentUser intentionally excluded to prevent infinite loop
+  }, [user, authLoading, hasFetched]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
-    setMessage({ type: '', text: '' });
+    setFeedback({ type: '', message: '' });
 
     try {
       const response = await api.put('/users/me', formData);
 
       if (response.data.success) {
-        setMessage({ type: 'success', text: 'Profile updated successfully!' });
-        // Refresh user data
+        setFeedback({ type: 'success', message: 'Profile updated successfully!' });
         const result = await getCurrentUser();
-        if (result.success) {
-          setUserData(result.user);
-        }
+        if (result.success) setUserData(result.user);
       }
     } catch (error) {
-      setMessage({
+      setFeedback({
         type: 'error',
-        text: error.response?.data?.error?.message || 'Failed to update profile'
+        message: error.response?.data?.error?.message || 'Failed to update profile'
       });
     } finally {
       setSaving(false);
@@ -119,43 +112,36 @@ export default function Profile() {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Validate file size (5MB)
     if (file.size > 5 * 1024 * 1024) {
-      setMessage({ type: 'error', text: 'File size must be less than 5MB' });
+      setFeedback({ type: 'error', message: 'File size must be less than 5MB' });
       return;
     }
 
-    // Validate file type
     if (!file.type.startsWith('image/')) {
-      setMessage({ type: 'error', text: 'Please upload an image file' });
+      setFeedback({ type: 'error', message: 'Please upload an image file' });
       return;
     }
 
     setUploading(true);
-    setMessage({ type: '', text: '' });
+    setFeedback({ type: '', message: '' });
 
     const formData = new FormData();
     formData.append('profile_picture', file);
 
     try {
       const response = await api.post('/users/me/profile-picture', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
 
       if (response.data.success) {
-        setMessage({ type: 'success', text: 'Profile picture updated successfully!' });
-        // Refresh user data
+        setFeedback({ type: 'success', message: 'Profile picture updated successfully!' });
         const result = await getCurrentUser();
-        if (result.success) {
-          setUserData(result.user);
-        }
+        if (result.success) setUserData(result.user);
       }
     } catch (error) {
-      setMessage({
+      setFeedback({
         type: 'error',
-        text: error.response?.data?.error?.message || 'Failed to upload profile picture'
+        message: error.response?.data?.error?.message || 'Failed to upload profile picture'
       });
     } finally {
       setUploading(false);
@@ -163,61 +149,49 @@ export default function Profile() {
   };
 
   const handleDeleteProfilePicture = async () => {
-    if (!confirm('Are you sure you want to delete your profile picture?')) {
-      return;
-    }
+    if (!confirm('Are you sure you want to delete your profile picture?')) return;
 
     setUploading(true);
-    setMessage({ type: '', text: '' });
+    setFeedback({ type: '', message: '' });
 
     try {
       const response = await api.delete('/users/me/profile-picture');
-
       if (response.data.success) {
-        setMessage({ type: 'success', text: 'Profile picture deleted successfully!' });
-        // Refresh user data
+        setFeedback({ type: 'success', message: 'Profile picture deleted successfully!' });
         const result = await getCurrentUser();
-        if (result.success) {
-          setUserData(result.user);
-        }
+        if (result.success) setUserData(result.user);
       }
     } catch (error) {
-      setMessage({
+      setFeedback({
         type: 'error',
-        text: error.response?.data?.error?.message || 'Failed to delete profile picture'
+        message: error.response?.data?.error?.message || 'Failed to delete profile picture'
       });
     } finally {
       setUploading(false);
     }
   };
 
-  // Helper to get full image URL
   const getImageUrl = (url) => {
     if (!url) return null;
     if (url.startsWith('http')) return url;
-
-    // Use environment variable for base URL if available
     const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000/api/v1';
-    // Remove /api/v1 suffix to get root URL for static files
     const rootUrl = apiBase.replace(/\/api\/v1\/?$/, '');
-
     return `${rootUrl}${url}`;
   };
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
     setSaving(true);
-    setMessage({ type: '', text: '' });
+    setFeedback({ type: '', message: '' });
 
-    // Client-side validation
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      setMessage({ type: 'error', text: 'New passwords do not match' });
+      setFeedback({ type: 'error', message: 'New passwords do not match' });
       setSaving(false);
       return;
     }
 
     if (passwordData.newPassword.length < 8) {
-      setMessage({ type: 'error', text: 'Password must be at least 8 characters long' });
+      setFeedback({ type: 'error', message: 'Password must be at least 8 characters long' });
       setSaving(false);
       return;
     }
@@ -230,20 +204,14 @@ export default function Profile() {
       });
 
       if (response.data.success) {
-        setMessage({ type: 'success', text: 'Password changed successfully!' });
-        setPasswordData({
-          currentPassword: '',
-          newPassword: '',
-          confirmPassword: ''
-        });
+        setFeedback({ type: 'success', message: 'Password changed successfully!' });
+        setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
       }
     } catch (error) {
-      console.error('Password change error:', error);
-      setMessage({
+      setFeedback({
         type: 'error',
-        text: error.response?.data?.error?.message || error.response?.data?.message || 'Failed to change password'
+        message: error.response?.data?.error?.message || error.response?.data?.message || 'Failed to change password'
       });
-      window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setSaving(false);
     }
@@ -251,813 +219,321 @@ export default function Profile() {
 
   const handlePasswordChange = (e) => {
     const { name, value } = e.target;
-    setPasswordData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setPasswordData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleResendVerification = async () => {
     if (verificationCooldown > 0) return;
 
     setSendingVerification(true);
-    setMessage({ type: '', text: '' });
+    setFeedback({ type: '', message: '' });
 
     try {
       const response = await api.post('/auth/resend-verification');
-
       if (response.data.success) {
-        setMessage({ type: 'success', text: 'Verification email sent! Please check your inbox.' });
-        setVerificationCooldown(30); // 30 seconds cooldown
+        setFeedback({ type: 'success', message: 'Verification email sent! Please check your inbox.' });
+        setVerificationCooldown(30);
       }
     } catch (error) {
-      setMessage({
+      setFeedback({
         type: 'error',
-        text: error.response?.data?.error?.message || 'Failed to send verification email'
+        message: error.response?.data?.error?.message || 'Failed to send verification email'
       });
     } finally {
       setSendingVerification(false);
     }
   };
 
-
-  if (authLoading || loading) {
+  if (loading) {
     return (
-      <div className="profile-container">
-        <div className="loading">
-          <div className="spinner"></div>
-          <p>Loading profile...</p>
+      <DashboardLayout user={user} onLogout={logout}>
+        <div className="flex flex-col items-center justify-center h-full min-h-[500px]">
+          <div className="w-10 h-10 border-4 border-gray-200 border-t-slate-900 rounded-full animate-spin mb-4"></div>
+          <p className="text-gray-500">Loading profile...</p>
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
-  if (!user || !userData) {
-    return null;
-  }
+  if (!user || !userData) return null;
 
   return (
-    <>
+    <DashboardLayout user={user} onLogout={logout}>
       <Head>
-        <title>Profile - Smart Campus Platform</title>
+        <title>Profile - Smart Campus</title>
       </Head>
 
-      <div className="profile-container">
-        <nav className="profile-nav">
-          <div className="nav-brand">
-            <h1>🎓 Smart Campus</h1>
-          </div>
-          <div className="nav-actions">
-            <button onClick={() => router.push('/dashboard')} className="btn-back">
-              ← Back to Dashboard
-            </button>
-          </div>
-        </nav>
+      <FeedbackMessage
+        type={feedback.type}
+        message={feedback.message}
+        onClose={() => setFeedback({ type: '', message: '' })}
+      />
 
-        <div className="profile-content">
-          <div className="profile-header">
-            <h2>My Profile</h2>
-            <p className="subtitle">Manage your account information</p>
-          </div>
+      <div className="mb-8 animate-in slide-in-from-bottom-2 duration-500">
+        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Your Profile</h1>
+        <p className="text-gray-500 mt-1">Manage your personal information and security settings</p>
+      </div>
 
-          {message.text && (
-            <div className={`message ${message.type}`}>
-              {message.text}
+      {/* Email Verification Section */}
+      {userData && !userData.is_verified && (
+        <div className="mb-8 bg-amber-50 border border-amber-200 rounded-xl p-5 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between animate-in fade-in duration-500">
+          <div className="flex items-center gap-3">
+            <div className="bg-amber-100 p-2 rounded-full">
+              <AlertTriangle className="h-6 w-6 text-amber-600" />
             </div>
-          )}
-
-          {/* Email Verification Section */}
-          {userData && !userData.is_verified && (
-            <div className="verification-section">
-              <div className="verification-warning">
-                <span className="warning-icon">⚠️</span>
-                <div className="warning-content">
-                  <h4>Email Not Verified</h4>
-                  <p>Your email address has not been verified yet. Please verify your email to access all features.</p>
-                </div>
-                <button
-                  onClick={handleResendVerification}
-                  className="btn-verify"
-                  disabled={sendingVerification || verificationCooldown > 0}
-                >
-                  {sendingVerification
-                    ? 'Sending...'
-                    : verificationCooldown > 0
-                      ? `Resend (${verificationCooldown}s)`
-                      : 'Send Verification Email'}
-                </button>
-              </div>
+            <div>
+              <h4 className="text-sm font-bold text-amber-900">Email Not Verified</h4>
+              <p className="text-sm text-amber-700 mt-0.5">Please verify your email address to access all features.</p>
             </div>
-          )}
+          </div>
+          <button
+            onClick={handleResendVerification}
+            className={`px-4 py-2 bg-white border border-amber-200 text-amber-900 text-sm font-semibold rounded-lg shadow-sm hover:bg-amber-100 transition-colors ${(sendingVerification || verificationCooldown > 0) ? 'opacity-50 cursor-not-allowed' : ''}`}
+            disabled={sendingVerification || verificationCooldown > 0}
+          >
+            {sendingVerification
+              ? 'Sending...'
+              : verificationCooldown > 0
+                ? `Resend in ${verificationCooldown}s`
+                : 'Send Verification Link'}
+          </button>
+        </div>
+      )}
 
-          {userData && userData.is_verified && (
-            <div className="verification-section verified">
-              <div className="verification-success">
-                <span className="success-icon">✅</span>
-                <div className="success-content">
-                  <h4>Email Verified</h4>
-                  <p>Your email address has been successfully verified.</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Profile Picture Section */}
-          <div className="profile-picture-section">
-            <h3>Profile Picture</h3>
-            <div className="picture-upload-container">
-              <div className="current-picture">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left Column: Profile Card */}
+        <div className="lg:col-span-1 space-y-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex flex-col items-center text-center">
+            <div className="relative group">
+              <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-100 mb-4 flex items-center justify-center border-4 border-white shadow-lg">
                 {userData.profile_picture_url ? (
-                  <img src={getImageUrl(userData.profile_picture_url)} alt="Profile" />
+                  <img src={getImageUrl(userData.profile_picture_url)} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
-                  <div className="avatar-placeholder-large">
-                    {userData.email?.charAt(0).toUpperCase()}
-                  </div>
+                  <span className="text-4xl font-bold text-gray-300">{userData.email?.charAt(0).toUpperCase()}</span>
                 )}
               </div>
-
-              <div className="picture-actions">
-                <label className="btn-upload" disabled={uploading}>
-                  {uploading ? 'Uploading...' : 'Upload New Picture'}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleProfilePictureUpload}
-                    disabled={uploading}
-                    style={{ display: 'none' }}
-                  />
-                </label>
-
-                {userData.profile_picture_url && (
-                  <button
-                    onClick={handleDeleteProfilePicture}
-                    className="btn-delete"
-                    disabled={uploading}
-                  >
-                    Delete Picture
-                  </button>
-                )}
-
-                <p className="upload-hint">Max size: 5MB. Formats: JPG, PNG, GIF</p>
-              </div>
+              <label className="absolute bottom-4 right-0 bg-slate-900 text-white p-2 rounded-full cursor-pointer hover:bg-blue-600 transition-colors shadow-md">
+                <Camera className="h-4 w-4" />
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleProfilePictureUpload}
+                  disabled={uploading}
+                  className="hidden"
+                />
+              </label>
             </div>
+
+            <h2 className="text-xl font-bold text-gray-900">{userData.first_name} {userData.last_name}</h2>
+            <p className="text-gray-500 text-sm mb-4">{userData.email}</p>
+
+            <div className="flex gap-2 mb-4">
+              <span className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-bold uppercase rounded-full tracking-wider border border-blue-100">
+                {userData.role}
+              </span>
+              {userData.is_verified && (
+                <span className="px-3 py-1 bg-green-50 text-green-700 text-xs font-bold uppercase rounded-full tracking-wider border border-green-100 flex items-center gap-1">
+                  <CheckCircle className="h-3 w-3" /> Verified
+                </span>
+              )}
+            </div>
+
+            {userData.profile_picture_url && (
+              <button
+                onClick={handleDeleteProfilePicture}
+                className="text-xs text-red-600 hover:text-red-800 hover:underline flex items-center gap-1"
+                disabled={uploading}
+              >
+                <Trash2 className="h-3 w-3" /> Remove Picture
+              </button>
+            )}
           </div>
 
-          {/* Profile Information Form */}
-          <div className="profile-form-section">
-            <h3>Personal Information</h3>
-            <form onSubmit={handleSubmit}>
-              <div className="form-grid">
-                <div className="form-group">
-                  <label htmlFor="email">Email</label>
-                  <input
-                    type="email"
-                    id="email"
-                    value={userData.email}
-                    disabled
-                    className="input-disabled"
-                  />
-                  <small>Email cannot be changed</small>
+          {[ // Role Specific Info
+            userData.role === 'student' && userData.profile && (
+              <div key="student-info" className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <Info className="h-4 w-4 text-gray-400" /> Academic Info
+                </h3>
+                <div className="space-y-4">
+                  <div className="flex justify-between border-b border-gray-50 pb-2">
+                    <span className="text-sm text-gray-500">Student No</span>
+                    <span className="text-sm font-mono font-medium">{userData.profile.student_number}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-gray-50 pb-2">
+                    <span className="text-sm text-gray-500">Department</span>
+                    <span className="text-sm font-medium text-right max-w-[60%]">{userData.profile.department?.name || '-'}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-gray-50 pb-2">
+                    <span className="text-sm text-gray-500">CGPA</span>
+                    <span className="text-sm font-bold text-blue-600">{(Number(userData.profile.cgpa) || 0).toFixed(2)}</span>
+                  </div>
                 </div>
+              </div>
+            ),
+            userData.role === 'faculty' && userData.profile && (
+              <div key="faculty-info" className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h3 className="font-bold text-gray-900 mb-4">Faculty Info</h3>
+                <div className="space-y-4">
+                  <div className="flex justify-between border-b border-gray-50 pb-2">
+                    <span className="text-sm text-gray-500">ID</span>
+                    <span className="text-sm font-mono font-medium">{userData.profile.employee_number}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-gray-50 pb-2">
+                    <span className="text-sm text-gray-500">Title</span>
+                    <span className="text-sm font-medium">{userData.profile.title || '-'}</span>
+                  </div>
+                </div>
+              </div>
+            )
+          ]}
+        </div>
 
-                <div className="form-group">
-                  <label htmlFor="role">Role</label>
+        {/* Right Column: Forms */}
+        <div className="lg:col-span-2 space-y-8">
+          {/* Personal Details Form */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+            <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
+              <User className="h-5 w-5 text-gray-400" /> Personal Details
+            </h3>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
                   <input
                     type="text"
-                    id="role"
-                    value={userData.role?.toUpperCase()}
-                    disabled
-                    className="input-disabled"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="first_name">First Name</label>
-                  <input
-                    type="text"
-                    id="first_name"
                     name="first_name"
                     value={formData.first_name}
                     onChange={handleInputChange}
-                    placeholder="Enter your first name"
+                    className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                   />
                 </div>
-
-                <div className="form-group">
-                  <label htmlFor="last_name">Last Name</label>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
                   <input
                     type="text"
-                    id="last_name"
                     name="last_name"
                     value={formData.last_name}
                     onChange={handleInputChange}
-                    placeholder="Enter your last name"
+                    className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                   />
                 </div>
-
-                <div className="form-group">
-                  <label htmlFor="phone">Phone Number</label>
-                  <input
-                    type="tel"
-                    id="phone"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    placeholder="Enter your phone number"
-                  />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email (Read-only)</label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                      <Mail className="h-4 w-4" />
+                    </span>
+                    <input
+                      type="email"
+                      value={userData.email}
+                      disabled
+                      className="block w-full pl-10 bg-gray-50 rounded-lg border-gray-200 text-gray-500 sm:text-sm"
+                    />
+                  </div>
                 </div>
-
-                <div className="form-group full-width">
-                  <label htmlFor="address">Address</label>
-                  <textarea
-                    id="address"
-                    name="address"
-                    value={formData.address}
-                    onChange={handleInputChange}
-                    placeholder="Enter your address"
-                    rows="3"
-                  />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                      <Phone className="h-4 w-4" />
+                    </span>
+                    <input
+                      type="tel"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleInputChange}
+                      className="block w-full pl-10 rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                    />
+                  </div>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                  <div className="relative">
+                    <span className="absolute top-3 left-3 flex items-center text-gray-400">
+                      <MapPin className="h-4 w-4" />
+                    </span>
+                    <textarea
+                      name="address"
+                      value={formData.address}
+                      onChange={handleInputChange}
+                      rows="3"
+                      className="block w-full pl-10 rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                    />
+                  </div>
                 </div>
               </div>
-
-              <div className="form-actions">
-                <button type="submit" className="btn-save" disabled={saving}>
-                  {saving ? 'Saving...' : 'Save Changes'}
-                </button>
+              <div className="flex justify-end pt-4 border-t border-gray-100">
                 <button
-                  type="button"
-                  className="btn-cancel"
-                  onClick={() => router.push('/dashboard')}
+                  type="submit"
                   disabled={saving}
+                  className="px-6 py-2.5 bg-slate-900 hover:bg-black text-white text-sm font-medium rounded-lg shadow-sm transition-colors focus:ring-2 focus:ring-offset-2 focus:ring-slate-900 disabled:opacity-50"
                 >
-                  Cancel
+                  {saving ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
             </form>
           </div>
 
-
-          {/* Change Password Section */}
-          <div className="profile-form-section">
-            <h3>Security (Change Password)</h3>
-            <form onSubmit={handleChangePassword}>
-              <div className="form-grid">
-                <div className="form-group full-width">
-                  <label htmlFor="currentPassword">Current Password</label>
+          {/* Security Form */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+            <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
+              <Shield className="h-5 w-5 text-gray-400" /> Security
+            </h3>
+            <form onSubmit={handleChangePassword} className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                    <Key className="h-4 w-4" />
+                  </span>
                   <input
                     type="password"
-                    id="currentPassword"
                     name="currentPassword"
                     value={passwordData.currentPassword}
                     onChange={handlePasswordChange}
-                    placeholder="Enter current password"
                     required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="newPassword">New Password</label>
-                  <input
-                    type="password"
-                    id="newPassword"
-                    name="newPassword"
-                    value={passwordData.newPassword}
-                    onChange={handlePasswordChange}
-                    placeholder="Min 8 chars, mixed case & special"
-                    required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="confirmPassword">Confirm New Password</label>
-                  <input
-                    type="password"
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    value={passwordData.confirmPassword}
-                    onChange={handlePasswordChange}
-                    placeholder="Re-type new password"
-                    required
+                    className="block w-full pl-10 rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                   />
                 </div>
               </div>
-
-              <div className="form-actions">
-                <button type="submit" className="btn-save" disabled={saving} style={{ backgroundColor: '#e67e22' }}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                  <input
+                    type="password"
+                    name="newPassword"
+                    value={passwordData.newPassword}
+                    onChange={handlePasswordChange}
+                    required
+                    className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+                  <input
+                    type="password"
+                    name="confirmPassword"
+                    value={passwordData.confirmPassword}
+                    onChange={handlePasswordChange}
+                    required
+                    className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end pt-4 border-t border-gray-100">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm font-medium rounded-lg shadow-sm transition-colors disabled:opacity-50"
+                >
                   {saving ? 'Updating...' : 'Update Password'}
                 </button>
               </div>
             </form>
           </div>
-
-          {/* Role-Specific Information */}
-          {userData.profile && (
-            <div className="role-info-section">
-              <h3>
-                {userData.role === 'student' ? 'Student Information' : 'Faculty Information'}
-              </h3>
-              <div className="info-grid">
-                {userData.role === 'student' && (
-                  <>
-                    <div className="info-item">
-                      <span className="label">Student Number:</span>
-                      <span className="value">{userData.profile.student_number}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="label">GPA:</span>
-                      <span className="value">{userData.profile.gpa != null ? (Number(userData.profile.gpa) || 0).toFixed(2) : 'N/A'}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="label">CGPA:</span>
-                      <span className="value">{userData.profile.cgpa != null ? (Number(userData.profile.cgpa) || 0).toFixed(2) : 'N/A'}</span>
-                    </div>
-                    {userData.profile.department && (
-                      <div className="info-item">
-                        <span className="label">Department:</span>
-                        <span className="value">{userData.profile.department.name}</span>
-                      </div>
-                    )}
-                  </>
-                )}
-
-                {userData.role === 'faculty' && (
-                  <>
-                    <div className="info-item">
-                      <span className="label">Employee Number:</span>
-                      <span className="value">{userData.profile.employee_number}</span>
-                    </div>
-                    {userData.profile.title && (
-                      <div className="info-item">
-                        <span className="label">Title:</span>
-                        <span className="value">{userData.profile.title}</span>
-                      </div>
-                    )}
-                    {userData.profile.department && (
-                      <div className="info-item">
-                        <span className="label">Department:</span>
-                        <span className="value">{userData.profile.department.name}</span>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-              <small className="info-note">
-                These fields cannot be modified. Contact administration for changes.
-              </small>
-            </div>
-          )}
         </div>
-      </div >
-
-      <style jsx>{`
-        .profile-container {
-          min-height: 100vh;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-
-        .profile-nav {
-          background: rgba(255, 255, 255, 0.95);
-          padding: 1rem 2rem;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .nav-brand h1 {
-          margin: 0;
-          font-size: 1.5rem;
-          color: #667eea;
-        }
-
-        .btn-back {
-          background: #667eea;
-          color: white;
-          border: none;
-          padding: 0.6rem 1.2rem;
-          border-radius: 8px;
-          cursor: pointer;
-          font-size: 0.95rem;
-          transition: all 0.3s ease;
-        }
-
-        .btn-back:hover {
-          background: #5568d3;
-          transform: translateY(-2px);
-        }
-
-        .profile-content {
-          max-width: 900px;
-          margin: 2rem auto;
-          padding: 0 1rem;
-        }
-
-        .profile-header {
-          text-align: center;
-          color: white;
-          margin-bottom: 2rem;
-        }
-
-        .profile-header h2 {
-          font-size: 2.5rem;
-          margin-bottom: 0.5rem;
-        }
-
-        .subtitle {
-          font-size: 1.1rem;
-          opacity: 0.9;
-        }
-
-        .message {
-          padding: 1rem;
-          border-radius: 8px;
-          margin-bottom: 1.5rem;
-          font-weight: 500;
-        }
-
-        .message.success {
-          background: #d4edda;
-          color: #155724;
-          border: 1px solid #c3e6cb;
-        }
-
-        .message.error {
-          background: #f8d7da;
-          color: #721c24;
-          border: 1px solid #f5c6cb;
-        }
-
-        .verification-section {
-          background: white;
-          border-radius: 12px;
-          padding: 1.5rem 2rem;
-          margin-bottom: 1.5rem;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-        }
-
-        .verification-warning {
-          display: flex;
-          align-items: center;
-          gap: 1.5rem;
-          background: linear-gradient(135deg, #fff3cd 0%, #ffeeba 100%);
-          padding: 1rem 1.5rem;
-          border-radius: 10px;
-          border-left: 4px solid #ffc107;
-        }
-
-        .warning-icon {
-          font-size: 2rem;
-          flex-shrink: 0;
-        }
-
-        .warning-content {
-          flex: 1;
-        }
-
-        .warning-content h4 {
-          margin: 0 0 0.3rem 0;
-          color: #856404;
-          font-size: 1.1rem;
-        }
-
-        .warning-content p {
-          margin: 0;
-          color: #856404;
-          font-size: 0.9rem;
-        }
-
-        .btn-verify {
-          background: #ffc107;
-          color: #212529;
-          border: none;
-          padding: 0.7rem 1.5rem;
-          border-radius: 8px;
-          cursor: pointer;
-          font-size: 0.95rem;
-          font-weight: 600;
-          transition: all 0.3s ease;
-          white-space: nowrap;
-        }
-
-        .btn-verify:hover:not([disabled]) {
-          background: #e0a800;
-          transform: translateY(-2px);
-        }
-
-        .btn-verify[disabled] {
-          opacity: 0.7;
-          cursor: not-allowed;
-        }
-
-        .verification-success {
-          display: flex;
-          align-items: center;
-          gap: 1.5rem;
-          background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
-          padding: 1rem 1.5rem;
-          border-radius: 10px;
-          border-left: 4px solid #28a745;
-        }
-
-        .success-icon {
-          font-size: 2rem;
-          flex-shrink: 0;
-        }
-
-        .success-content {
-          flex: 1;
-        }
-
-        .success-content h4 {
-          margin: 0 0 0.3rem 0;
-          color: #155724;
-          font-size: 1.1rem;
-        }
-
-        .success-content p {
-          margin: 0;
-          color: #155724;
-          font-size: 0.9rem;
-        }
-
-        .profile-picture-section,
-        .profile-form-section,
-        .role-info-section {
-          background: white;
-          border-radius: 12px;
-          padding: 2rem;
-          margin-bottom: 1.5rem;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-        }
-
-        .profile-picture-section h3,
-        .profile-form-section h3,
-        .role-info-section h3 {
-          margin-top: 0;
-          margin-bottom: 1.5rem;
-          color: #333;
-          font-size: 1.3rem;
-        }
-
-        .picture-upload-container {
-          display: flex;
-          gap: 2rem;
-          align-items: center;
-        }
-
-        .current-picture {
-          flex-shrink: 0;
-        }
-
-        .current-picture img {
-          width: 150px;
-          height: 150px;
-          border-radius: 50%;
-          object-fit: cover;
-          border: 4px solid #667eea;
-        }
-
-        .avatar-placeholder-large {
-          width: 150px;
-          height: 150px;
-          border-radius: 50%;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 4rem;
-          color: white;
-          font-weight: bold;
-        }
-
-        .picture-actions {
-          flex: 1;
-        }
-
-        .btn-upload,
-        .btn-delete {
-          padding: 0.7rem 1.5rem;
-          border-radius: 8px;
-          border: none;
-          cursor: pointer;
-          font-size: 0.95rem;
-          font-weight: 500;
-          transition: all 0.3s ease;
-          margin-right: 1rem;
-          margin-bottom: 0.5rem;
-        }
-
-        .btn-upload {
-          background: #667eea;
-          color: white;
-          display: inline-block;
-        }
-
-        .btn-upload:hover:not([disabled]) {
-          background: #5568d3;
-          transform: translateY(-2px);
-        }
-
-        .btn-delete {
-          background: #dc3545;
-          color: white;
-        }
-
-        .btn-delete:hover:not([disabled]) {
-          background: #c82333;
-          transform: translateY(-2px);
-        }
-
-        .btn-upload[disabled],
-        .btn-delete[disabled] {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
-
-        .upload-hint {
-          color: #666;
-          font-size: 0.85rem;
-          margin-top: 0.5rem;
-        }
-
-        .form-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 1.5rem;
-        }
-
-        .form-group {
-          display: flex;
-          flex-direction: column;
-        }
-
-        .form-group.full-width {
-          grid-column: 1 / -1;
-        }
-
-        .form-group label {
-          margin-bottom: 0.5rem;
-          color: #333;
-          font-weight: 500;
-        }
-
-        .form-group input,
-        .form-group textarea {
-          padding: 0.75rem;
-          border: 2px solid #e0e0e0;
-          border-radius: 8px;
-          font-size: 1rem;
-          transition: border-color 0.3s ease;
-        }
-
-        .form-group input:focus,
-        .form-group textarea:focus {
-          outline: none;
-          border-color: #667eea;
-        }
-
-        .input-disabled {
-          background: #f5f5f5;
-          cursor: not-allowed;
-        }
-
-        .form-group small {
-          margin-top: 0.3rem;
-          color: #666;
-          font-size: 0.85rem;
-        }
-
-        .form-actions {
-          margin-top: 2rem;
-          display: flex;
-          gap: 1rem;
-        }
-
-        .btn-save,
-        .btn-cancel {
-          padding: 0.8rem 2rem;
-          border-radius: 8px;
-          border: none;
-          cursor: pointer;
-          font-size: 1rem;
-          font-weight: 500;
-          transition: all 0.3s ease;
-        }
-
-        .btn-save {
-          background: #28a745;
-          color: white;
-        }
-
-        .btn-save:hover:not([disabled]) {
-          background: #218838;
-          transform: translateY(-2px);
-        }
-
-        .btn-cancel {
-          background: #6c757d;
-          color: white;
-        }
-
-        .btn-cancel:hover:not([disabled]) {
-          background: #5a6268;
-          transform: translateY(-2px);
-        }
-
-        .btn-save[disabled],
-        .btn-cancel[disabled] {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
-
-        .info-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 1rem;
-        }
-
-        .info-item {
-          padding: 1rem;
-          background: #f8f9fa;
-          border-radius: 8px;
-        }
-
-        .info-item .label {
-          display: block;
-          color: #666;
-          font-size: 0.85rem;
-          margin-bottom: 0.3rem;
-        }
-
-        .info-item .value {
-          display: block;
-          color: #333;
-          font-size: 1.1rem;
-          font-weight: 500;
-        }
-
-        .info-note {
-          display: block;
-          margin-top: 1rem;
-          color: #666;
-          font-style: italic;
-        }
-
-        .loading {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          min-height: 100vh;
-          color: white;
-        }
-
-        .spinner {
-          border: 4px solid rgba(255, 255, 255, 0.3);
-          border-top: 4px solid white;
-          border-radius: 50%;
-          width: 50px;
-          height: 50px;
-          animation: spin 1s linear infinite;
-          margin-bottom: 1rem;
-        }
-
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-
-        @media (max-width: 768px) {
-          .form-grid,
-          .info-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .picture-upload-container {
-            flex-direction: column;
-            text-align: center;
-          }
-
-          .profile-nav {
-            padding: 1rem;
-          }
-
-          .nav-brand h1 {
-            font-size: 1.2rem;
-          }
-
-          .verification-warning,
-          .verification-success {
-            flex-direction: column;
-            text-align: center;
-          }
-
-          .btn-verify {
-            width: 100%;
-            margin-top: 0.5rem;
-          }
-        }
-      `}</style>
-    </>
+      </div>
+    </DashboardLayout>
   );
 }

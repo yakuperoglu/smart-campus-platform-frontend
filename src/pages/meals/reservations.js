@@ -1,599 +1,295 @@
-/**
- * My Meal Reservations Page
- * 
- * View upcoming meal reservations with QR codes for pickup.
- */
-
-import { useState, useEffect, useContext } from 'react';
-import { useRouter } from 'next/router';
-import Head from 'next/head';
-import Link from 'next/link';
-import { QRCodeSVG } from 'qrcode.react';
-import Navbar from '../../components/Navbar';
-import { AuthContext } from '../../context/AuthContext';
-import api from '../../config/api';
-
-export default function MealReservationsPage() {
-    const router = useRouter();
-    const { user, loading: authLoading } = useContext(AuthContext);
-
-    const [reservations, setReservations] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [success, setSuccess] = useState(null);
-    const [filter, setFilter] = useState('upcoming');
-    const [expandedQR, setExpandedQR] = useState(null);
-
-    useEffect(() => {
-        if (!authLoading && !user) {
-            router.push('/login');
-            return;
-        }
-        if (user) {
-            fetchReservations();
-        }
-    }, [user, authLoading, filter]);
-
-    const fetchReservations = async () => {
-        try {
-            setLoading(true);
-            let url = '/meals/reservations?limit=50';
-            if (filter === 'upcoming') {
-                url += '&status=reserved';
-            } else if (filter !== 'all') {
-                url += `&status=${filter}`;
-            }
-            const response = await api.get(url);
-            setReservations(response.data.data || []);
-        } catch (err) {
-            console.error('Error fetching reservations:', err);
-            setError('Failed to load reservations');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleCancel = async (reservationId) => {
-        if (!confirm('Are you sure you want to cancel this reservation? Any payment will be refunded.')) {
-            return;
-        }
-
-        try {
-            await api.delete(`/meals/reservations/${reservationId}`);
-            setSuccess('Reservation cancelled successfully');
-            fetchReservations();
-        } catch (err) {
-            console.error('Cancel error:', err);
-            setError(err.response?.data?.message || 'Failed to cancel reservation');
-        }
-    };
-
-    const getMealTypeData = (type) => {
-        const data = {
-            breakfast: { icon: '🌅', label: 'Breakfast', color: '#F59E0B' },
-            lunch: { icon: '☀️', label: 'Lunch', color: '#10B981' },
-            dinner: { icon: '🌙', label: 'Dinner', color: '#6366F1' }
-        };
-        return data[type] || { icon: '🍽️', label: type, color: '#6B7280' };
-    };
-
-    const getStatusBadge = (status) => {
-        const badges = {
-            reserved: { label: 'Active', color: '#10B981', bg: '#D1FAE5' },
-            confirmed: { label: 'Confirmed', color: '#3B82F6', bg: '#DBEAFE' },
-            consumed: { label: 'Used', color: '#6B7280', bg: '#F3F4F6' },
-            cancelled: { label: 'Cancelled', color: '#EF4444', bg: '#FEE2E2' },
-            no_show: { label: 'No Show', color: '#DC2626', bg: '#FEE2E2' }
-        };
-        return badges[status] || { label: status, color: '#6B7280', bg: '#F3F4F6' };
-    };
-
-    const formatDate = (dateStr) => {
-        const date = new Date(dateStr);
-        const today = new Date();
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-
-        const dateOnly = dateStr?.split('T')[0];
-        const todayStr = today.toISOString().split('T')[0];
-        const tomorrowStr = tomorrow.toISOString().split('T')[0];
-
-        if (dateOnly === todayStr) return 'Today';
-        if (dateOnly === tomorrowStr) return 'Tomorrow';
-
-        return date.toLocaleDateString('en-US', {
-            weekday: 'short',
-            month: 'short',
-            day: 'numeric'
-        });
-    };
-
-    const isUpcoming = (reservation) => {
-        if (reservation.status !== 'reserved') return false;
-        const menuDate = new Date(reservation.menu?.date || reservation.reservation_time);
-        return menuDate >= new Date(new Date().setHours(0, 0, 0, 0));
-    };
-
-    const upcomingReservations = reservations.filter(r => r.status === 'reserved');
-    const pastReservations = reservations.filter(r => r.status !== 'reserved');
-
-    if (authLoading || loading) {
-        return (
-            <>
-                <Head><title>My Reservations - Smart Campus</title></Head>
-                <Navbar />
-                <div style={styles.loadingContainer}>
-                    <div style={styles.spinner}></div>
-                    <p>Loading reservations...</p>
-                </div>
-            </>
-        );
-    }
-
-    return (
-        <>
-            <Head>
-                <title>My Reservations - Smart Campus</title>
-            </Head>
-            <Navbar />
-
-            <div style={styles.container}>
-                {/* Header */}
-                <div style={styles.header}>
-                    <div>
-                        <h1 style={styles.title}>My Meal Reservations</h1>
-                        <p style={styles.subtitle}>{upcomingReservations.length} upcoming meals</p>
-                    </div>
-                    <Link href="/meals/menu" style={styles.browseBtn}>
-                        📋 Browse Menu
-                    </Link>
-                </div>
-
-                {/* Alerts */}
-                {error && (
-                    <div style={styles.errorAlert}>
-                        <span>⚠️ {error}</span>
-                        <button onClick={() => setError(null)} style={styles.alertClose}>×</button>
-                    </div>
-                )}
-                {success && (
-                    <div style={styles.successAlert}>
-                        <span>✓ {success}</span>
-                        <button onClick={() => setSuccess(null)} style={styles.alertClose}>×</button>
-                    </div>
-                )}
-
-                {/* Filter Tabs */}
-                <div style={styles.tabs}>
-                    {['upcoming', 'consumed', 'cancelled', 'all'].map(tab => (
-                        <button
-                            key={tab}
-                            onClick={() => setFilter(tab)}
-                            style={filter === tab ? styles.tabActive : styles.tab}
-                        >
-                            {tab === 'upcoming' && '🎫 '}
-                            {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                        </button>
-                    ))}
-                </div>
-
-                {/* Reservations List */}
-                {reservations.length === 0 ? (
-                    <div style={styles.emptyState}>
-                        <span style={styles.emptyIcon}>🍽️</span>
-                        <p>No reservations found</p>
-                        <Link href="/meals/menu" style={styles.emptyBtn}>
-                            Browse Menu & Reserve
-                        </Link>
-                    </div>
-                ) : (
-                    <div style={styles.reservationList}>
-                        {reservations.map(reservation => {
-                            const mealData = getMealTypeData(reservation.menu?.type);
-                            const statusBadge = getStatusBadge(reservation.status);
-                            const isActive = reservation.status === 'reserved';
-
-                            return (
-                                <div key={reservation.id} style={styles.reservationCard}>
-                                    <div style={styles.cardLeft}>
-                                        {/* Date Badge */}
-                                        <div style={{ ...styles.dateBadge, backgroundColor: mealData.color }}>
-                                            <span style={styles.dateBadgeDay}>
-                                                {formatDate(reservation.menu?.date || reservation.reservation_time)}
-                                            </span>
-                                            <span style={styles.dateBadgeType}>{mealData.icon} {mealData.label}</span>
-                                        </div>
-
-                                        {/* Details */}
-                                        <div style={styles.details}>
-                                            <div style={styles.detailRow}>
-                                                <span style={{
-                                                    ...styles.statusBadge,
-                                                    backgroundColor: statusBadge.bg,
-                                                    color: statusBadge.color
-                                                }}>
-                                                    {statusBadge.label}
-                                                </span>
-                                            </div>
-                                            <div style={styles.cafeteriaName}>
-                                                📍 {reservation.cafeteria?.name || reservation.menu?.cafeteria?.name || 'Campus Cafeteria'}
-                                            </div>
-
-                                            {/* Menu Items Preview */}
-                                            {reservation.menu?.items_json && (
-                                                <div style={styles.itemsPreview}>
-                                                    {(reservation.menu.items_json || []).slice(0, 3).map((item, idx) => (
-                                                        <span key={idx} style={styles.itemTag}>
-                                                            {item.name || item}
-                                                        </span>
-                                                    ))}
-                                                </div>
-                                            )}
-
-                                            {/* Cancel Button */}
-                                            {isActive && (
-                                                <button
-                                                    onClick={() => handleCancel(reservation.id)}
-                                                    style={styles.cancelBtn}
-                                                >
-                                                    Cancel Reservation
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    {/* QR Code Section */}
-                                    {isActive && reservation.qr_code && (
-                                        <div
-                                            style={styles.qrSection}
-                                            onClick={() => setExpandedQR(expandedQR === reservation.id ? null : reservation.id)}
-                                        >
-                                            <div style={styles.qrContainer}>
-                                                <QRCodeSVG
-                                                    value={reservation.qr_code}
-                                                    size={expandedQR === reservation.id ? 180 : 100}
-                                                    level="H"
-                                                    includeMargin={true}
-                                                />
-                                            </div>
-                                            <span style={styles.qrLabel}>
-                                                {expandedQR === reservation.id ? 'Tap to shrink' : 'Tap to enlarge'}
-                                            </span>
-                                            <span style={styles.qrHint}>Show at cafeteria</span>
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
-                )}
-            </div>
-
-            {/* Expanded QR Modal */}
-            {expandedQR && (
-                <div style={styles.qrModal} onClick={() => setExpandedQR(null)}>
-                    <div style={styles.qrModalContent} onClick={e => e.stopPropagation()}>
-                        <div style={styles.qrModalHeader}>
-                            <span>Your Meal QR Code</span>
-                            <button style={styles.qrModalClose} onClick={() => setExpandedQR(null)}>×</button>
-                        </div>
-                        <div style={styles.qrModalBody}>
-                            {reservations.find(r => r.id === expandedQR)?.qr_code && (
-                                <QRCodeSVG
-                                    value={reservations.find(r => r.id === expandedQR).qr_code}
-                                    size={280}
-                                    level="H"
-                                    includeMargin={true}
-                                />
-                            )}
-                        </div>
-                        <p style={styles.qrModalHint}>Show this code at the cafeteria counter</p>
-                    </div>
-                </div>
-            )}
-
-            <style jsx global>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
-        </>
-    );
-}
-
-const styles = {
-    container: {
-        maxWidth: '900px',
-        margin: '0 auto',
-        padding: '24px',
-        fontFamily: 'system-ui, -apple-system, sans-serif'
-    },
-    loadingContainer: {
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '60vh',
-        color: '#6B7280'
-    },
-    spinner: {
-        width: '40px',
-        height: '40px',
-        border: '3px solid #E5E7EB',
-        borderTop: '3px solid #F59E0B',
-        borderRadius: '50%',
-        animation: 'spin 1s linear infinite',
-        marginBottom: '16px'
-    },
-    header: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        marginBottom: '24px',
-        flexWrap: 'wrap',
-        gap: '12px'
-    },
-    title: {
-        fontSize: '28px',
-        fontWeight: '700',
-        color: '#111827',
-        margin: 0
-    },
-    subtitle: {
-        fontSize: '16px',
-        color: '#6B7280',
-        marginTop: '4px'
-    },
-    browseBtn: {
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '8px',
-        padding: '10px 16px',
-        backgroundColor: '#F59E0B',
-        color: 'white',
-        borderRadius: '10px',
-        textDecoration: 'none',
-        fontWeight: '500',
-        fontSize: '14px'
-    },
-    errorAlert: {
-        backgroundColor: '#FEF2F2',
-        border: '1px solid #FECACA',
-        color: '#DC2626',
-        padding: '12px 16px',
-        borderRadius: '10px',
-        marginBottom: '16px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-    },
-    successAlert: {
-        backgroundColor: '#F0FDF4',
-        border: '1px solid #BBF7D0',
-        color: '#16A34A',
-        padding: '12px 16px',
-        borderRadius: '10px',
-        marginBottom: '16px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-    },
-    alertClose: {
-        background: 'none',
-        border: 'none',
-        fontSize: '20px',
-        cursor: 'pointer',
-        opacity: 0.7
-    },
-    tabs: {
-        display: 'flex',
-        gap: '8px',
-        marginBottom: '24px',
-        flexWrap: 'wrap'
-    },
-    tab: {
-        padding: '10px 18px',
-        backgroundColor: '#F3F4F6',
-        border: 'none',
-        borderRadius: '8px',
-        fontSize: '14px',
-        fontWeight: '500',
-        color: '#6B7280',
-        cursor: 'pointer'
-    },
-    tabActive: {
-        padding: '10px 18px',
-        backgroundColor: '#F59E0B',
-        border: 'none',
-        borderRadius: '8px',
-        fontSize: '14px',
-        fontWeight: '500',
-        color: 'white',
-        cursor: 'pointer'
-    },
-    emptyState: {
-        textAlign: 'center',
-        padding: '60px 20px',
-        color: '#6B7280'
-    },
-    emptyIcon: {
-        fontSize: '48px',
-        display: 'block',
-        marginBottom: '16px'
-    },
-    emptyBtn: {
-        display: 'inline-block',
-        marginTop: '16px',
-        padding: '12px 24px',
-        backgroundColor: '#F59E0B',
-        color: 'white',
-        borderRadius: '10px',
-        textDecoration: 'none',
-        fontWeight: '600'
-    },
-    reservationList: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '16px'
-    },
-    reservationCard: {
-        backgroundColor: 'white',
-        borderRadius: '16px',
-        padding: '20px',
-        boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'stretch',
-        gap: '20px',
-        flexWrap: 'wrap'
-    },
-    cardLeft: {
-        display: 'flex',
-        gap: '16px',
-        flex: 1,
-        minWidth: '280px'
-    },
-    dateBadge: {
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '16px',
-        borderRadius: '12px',
-        color: 'white',
-        minWidth: '80px',
-        textAlign: 'center'
-    },
-    dateBadgeDay: {
-        fontSize: '15px',
-        fontWeight: '700',
-        marginBottom: '4px'
-    },
-    dateBadgeType: {
-        fontSize: '12px',
-        opacity: 0.9
-    },
-    details: {
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '8px'
-    },
-    detailRow: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px'
-    },
-    statusBadge: {
-        padding: '4px 10px',
-        borderRadius: '6px',
-        fontSize: '12px',
-        fontWeight: '600'
-    },
-    cafeteriaName: {
-        fontSize: '14px',
-        color: '#6B7280'
-    },
-    itemsPreview: {
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: '6px',
-        marginTop: '4px'
-    },
-    itemTag: {
-        padding: '4px 8px',
-        backgroundColor: '#F3F4F6',
-        borderRadius: '4px',
-        fontSize: '12px',
-        color: '#374151'
-    },
-    cancelBtn: {
-        marginTop: 'auto',
-        padding: '8px 16px',
-        backgroundColor: '#FEF2F2',
-        color: '#DC2626',
-        border: 'none',
-        borderRadius: '8px',
-        fontSize: '13px',
-        fontWeight: '500',
-        cursor: 'pointer',
-        alignSelf: 'flex-start'
-    },
-    qrSection: {
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '8px',
-        padding: '16px',
-        backgroundColor: '#F9FAFB',
-        borderRadius: '12px',
-        cursor: 'pointer',
-        transition: 'all 0.2s'
-    },
-    qrContainer: {
-        padding: '8px',
-        backgroundColor: 'white',
-        borderRadius: '8px'
-    },
-    qrLabel: {
-        fontSize: '11px',
-        color: '#9CA3AF'
-    },
-    qrHint: {
-        fontSize: '13px',
-        fontWeight: '500',
-        color: '#374151'
-    },
-    // QR Modal
-    qrModal: {
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0,0,0,0.7)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000,
-        padding: '20px'
-    },
-    qrModalContent: {
-        backgroundColor: 'white',
-        borderRadius: '20px',
-        padding: '24px',
-        textAlign: 'center',
-        maxWidth: '360px',
-        width: '100%'
-    },
-    qrModalHeader: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '20px',
-        fontSize: '18px',
-        fontWeight: '600'
-    },
-    qrModalClose: {
-        background: 'none',
-        border: 'none',
-        fontSize: '24px',
-        cursor: 'pointer',
-        color: '#9CA3AF'
-    },
-    qrModalBody: {
-        display: 'flex',
-        justifyContent: 'center',
-        marginBottom: '16px'
-    },
-    qrModalHint: {
-        fontSize: '14px',
-        color: '#6B7280'
-    }
-};
+/**
+ * My Meal Reservations Page
+ * 
+ * View upcoming meal reservations with QR codes for pickup.
+ */
 
-// Force SSR to prevent static generation errors
-export async function getServerSideProps() {
-    return { props: {} };
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
+import Head from 'next/head';
+import Link from 'next/link';
+import { QRCodeSVG } from 'qrcode.react';
+import DashboardLayout from '../../components/layout/DashboardLayout';
+import { useAuth } from '../../context/AuthContext';
+import api from '../../config/api';
+import FeedbackMessage from '../../components/FeedbackMessage';
+import { Calendar, MapPin, XCircle, QrCode, Clock, Filter, AlertCircle } from 'lucide-react';
+
+export default function MealReservationsPage() {
+    const router = useRouter();
+    const { user, logout, loading: authLoading } = useAuth();
+
+    const [reservations, setReservations] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [feedback, setFeedback] = useState({ type: '', message: '' });
+    const [filter, setFilter] = useState('upcoming');
+    const [expandedQR, setExpandedQR] = useState(null);
+
+    useEffect(() => {
+        if (!authLoading && !user) {
+            router.push('/login');
+            return;
+        }
+        if (user) {
+            fetchReservations();
+        }
+    }, [user, authLoading, filter]);
+
+    const fetchReservations = async () => {
+        try {
+            setLoading(true);
+            let url = '/meals/reservations?limit=50';
+            if (filter === 'upcoming') {
+                url += '&status=reserved';
+            } else if (filter !== 'all') {
+                url += `&status=${filter}`;
+            }
+            const response = await api.get(url);
+            setReservations(response.data.data || []);
+        } catch (err) {
+            console.error('Error fetching reservations:', err);
+            setFeedback({ type: 'error', message: 'Failed to load reservations' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleCancel = async (reservationId) => {
+        if (!confirm('Are you sure you want to cancel this reservation? Any payment will be refunded.')) {
+            return;
+        }
+
+        try {
+            await api.delete(`/meals/reservations/${reservationId}`);
+            setFeedback({ type: 'success', message: 'Reservation cancelled successfully' });
+            fetchReservations();
+        } catch (err) {
+            console.error('Cancel error:', err);
+            setFeedback({ type: 'error', message: err.response?.data?.message || 'Failed to cancel reservation' });
+        }
+    };
+
+    const getMealTypeData = (type) => {
+        const data = {
+            breakfast: { icon: '🌅', label: 'Breakfast', color: 'bg-amber-100 text-amber-800 border-amber-200' },
+            lunch: { icon: '☀️', label: 'Lunch', color: 'bg-emerald-100 text-emerald-800 border-emerald-200' },
+            dinner: { icon: '🌙', label: 'Dinner', color: 'bg-indigo-100 text-indigo-800 border-indigo-200' }
+        };
+        return data[type] || { icon: '🍽️', label: type, color: 'bg-gray-100 text-gray-800 border-gray-200' };
+    };
+
+    const getStatusBadge = (status) => {
+        const badges = {
+            reserved: { label: 'Active', classes: 'bg-green-100 text-green-800 border-green-200' },
+            confirmed: { label: 'Confirmed', classes: 'bg-blue-100 text-blue-800 border-blue-200' },
+            consumed: { label: 'Used', classes: 'bg-gray-100 text-gray-600 border-gray-200' },
+            cancelled: { label: 'Cancelled', classes: 'bg-red-50 text-red-600 border-red-100 line-through' },
+            no_show: { label: 'No Show', classes: 'bg-red-100 text-red-800 border-red-200' }
+        };
+        return badges[status] || { label: status, classes: 'bg-gray-100 text-gray-800' };
+    };
+
+    const formatDate = (dateStr) => {
+        const date = new Date(dateStr);
+        const today = new Date();
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        const dateOnly = dateStr?.split('T')[0];
+        const todayStr = today.toISOString().split('T')[0];
+        const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+        if (dateOnly === todayStr) return 'Today';
+        if (dateOnly === tomorrowStr) return 'Tomorrow';
+
+        return date.toLocaleDateString('en-US', {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric'
+        });
+    };
+
+    const upcomingReservations = reservations.filter(r => r.status === 'reserved');
+
+    return (
+        <DashboardLayout user={user} onLogout={logout}>
+            <Head>
+                <title>My Reservations - Smart Campus</title>
+            </Head>
+
+            <FeedbackMessage
+                type={feedback.type}
+                message={feedback.message}
+                onClose={() => setFeedback({ type: '', message: '' })}
+            />
+
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 animate-in slide-in-from-bottom-2 duration-500">
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-900 tracking-tight">My Meal Reservations</h1>
+                    <p className="text-gray-500 mt-1">{upcomingReservations.length} upcoming meals</p>
+                </div>
+                <div className="mt-4 md:mt-0">
+                    <Link href="/meals/menu" className="inline-flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-black transition-colors shadow-sm">
+                        <span>+</span> Reserve Meal
+                    </Link>
+                </div>
+            </div>
+
+            {/* Filter Tabs */}
+            <div className="flex space-x-1 mb-6 bg-gray-100 p-1 rounded-xl w-full md:w-auto inline-flex overflow-x-auto">
+                {['upcoming', 'consumed', 'cancelled', 'all'].map(tab => (
+                    <button
+                        key={tab}
+                        onClick={() => setFilter(tab)}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap
+                            ${filter === tab
+                                ? 'bg-white text-gray-900 shadow-sm'
+                                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'}`}
+                    >
+                        {tab === 'upcoming' && '🎫 '}
+                        {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                    </button>
+                ))}
+            </div>
+
+            {loading ? (
+                <div className="flex flex-col items-center justify-center py-20">
+                    <div className="w-10 h-10 border-4 border-gray-200 border-t-slate-900 rounded-full animate-spin mb-4"></div>
+                    <p className="text-gray-500">Loading reservations...</p>
+                </div>
+            ) : reservations.length === 0 ? (
+                <div className="text-center py-16 bg-white rounded-xl border border-dashed border-gray-300 shadow-sm">
+                    <div className="bg-gray-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Filter className="h-8 w-8 text-gray-400" />
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-900">No {filter} reservations found</h3>
+                    <p className="text-gray-500 text-sm mt-1 max-w-sm mx-auto">
+                        {filter === 'upcoming'
+                            ? "You don't have any upcoming meal reservations. Check the menu to reserve a meal."
+                            : "No reservation history found for this filter."}
+                    </p>
+                    {filter === 'upcoming' && (
+                        <Link href="/meals/menu" className="inline-block mt-4 text-blue-600 font-medium hover:underline">
+                            Browse Daily Menu →
+                        </Link>
+                    )}
+                </div>
+            ) : (
+                <div className="space-y-4 animate-in slide-in-from-bottom-3 duration-500">
+                    {reservations.map(reservation => {
+                        const mealData = getMealTypeData(reservation.menu?.type);
+                        const statusBadge = getStatusBadge(reservation.status);
+                        const isActive = reservation.status === 'reserved';
+
+                        return (
+                            <div key={reservation.id} className="bg-white rounded-xl p-5 shadow-sm border border-gray-200 hover:shadow-md transition-shadow flex flex-col md:flex-row gap-6">
+                                {/* Left Section: Date & Icon */}
+                                <div className="flex-shrink-0 flex md:flex-col items-center gap-3 md:gap-1 md:w-24 md:border-r md:border-gray-100 md:pr-6">
+                                    <div className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl ${mealData.color.split(' ')[0]}`}>
+                                        {mealData.icon}
+                                    </div>
+                                    <div className="text-center">
+                                        <p className="font-bold text-gray-900 leading-tight">
+                                            {formatDate(reservation.menu?.date || reservation.reservation_time)}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Middle Section: Content */}
+                                <div className="flex-grow">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <span className={`px-2 py-0.5 rounded text-xs font-bold border ${mealData.color}`}>
+                                            {mealData.label}
+                                        </span>
+                                        <span className={`px-2 py-0.5 rounded text-xs font-bold border ${statusBadge.classes}`}>
+                                            {statusBadge.label}
+                                        </span>
+                                    </div>
+
+                                    <h3 className="text-gray-900 font-bold mb-1 flex items-center gap-2">
+                                        <MapPin className="h-4 w-4 text-gray-400" />
+                                        {reservation.cafeteria?.name || reservation.menu?.cafeteria?.name || 'Campus Cafeteria'}
+                                    </h3>
+
+                                    {reservation.menu?.items_json && (
+                                        <div className="flex flex-wrap gap-2 mt-3">
+                                            {(reservation.menu.items_json || []).slice(0, 3).map((item, idx) => (
+                                                <span key={idx} className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded">
+                                                    {item.name || item}
+                                                </span>
+                                            ))}
+                                            {(reservation.menu.items_json?.length > 3) && (
+                                                <span className="text-xs text-gray-400 px-1 py-1">+{reservation.menu.items_json.length - 3} more</span>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {isActive && (
+                                        <button
+                                            onClick={() => handleCancel(reservation.id)}
+                                            className="mt-4 text-xs font-medium text-red-600 hover:text-red-800 hover:underline flex items-center gap-1"
+                                        >
+                                            <XCircle className="h-3 w-3" /> Cancel Reservation
+                                        </button>
+                                    )}
+                                </div>
+
+                                {/* Right Section: QR Code */}
+                                {isActive && reservation.qr_code && (
+                                    <div className="flex-shrink-0 border-t md:border-t-0 md:border-l border-gray-100 md:pl-6 pt-4 md:pt-0 flex flex-col items-center justify-center">
+                                        <button
+                                            onClick={() => setExpandedQR(reservation.id)}
+                                            className="group flex flex-col items-center gap-2 p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                                        >
+                                            <div className="bg-white p-2 rounded border border-gray-200 group-hover:border-blue-300 transition-colors">
+                                                <QRCodeSVG
+                                                    value={reservation.qr_code}
+                                                    size={80}
+                                                    level="H"
+                                                />
+                                            </div>
+                                            <span className="text-xs font-semibold text-blue-600 flex items-center gap-1">
+                                                <QrCode className="h-3 w-3" /> Show QR
+                                            </span>
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+
+            {/* Expanded QR Modal */}
+            {expandedQR && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+                    onClick={() => setExpandedQR(null)}
+                >
+                    <div className="bg-white rounded-2xl w-full max-w-sm p-6 text-center shadow-2xl transform scale-100 animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="font-bold text-gray-900 text-lg">Meal Authentication QR</h3>
+                            <button onClick={() => setExpandedQR(null)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+                        </div>
+
+                        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-inner flex justify-center mb-6">
+                            {reservations.find(r => r.id === expandedQR)?.qr_code && (
+                                <QRCodeSVG
+                                    value={reservations.find(r => r.id === expandedQR).qr_code}
+                                    size={240}
+                                    level="H"
+                                    includeMargin={true}
+                                />
+                            )}
+                        </div>
+
+                        <div className="bg-blue-50 text-blue-700 p-3 rounded-lg text-sm flex items-start gap-2 text-left">
+                            <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                            <p>Show this code to the cafeteria staff to redeem your meal. Brightness up!</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </DashboardLayout>
+    );
 }
