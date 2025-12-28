@@ -223,8 +223,8 @@ export default function EventsIndexPage() {
                                             <div className="absolute inset-0 bg-pattern opacity-10"></div>
                                             <div className="absolute -bottom-8 left-6">
                                                 <div className="w-16 h-16 rounded-xl bg-white p-1 shadow-md">
-                                                    {club.logo_url ? (
-                                                        <img src={club.logo_url} alt="Logo" className="w-full h-full object-cover rounded-lg" />
+                                                    {club.image_url ? (
+                                                        <img src={club.image_url} alt="Logo" className="w-full h-full object-cover rounded-lg" />
                                                     ) : (
                                                         <div className="w-full h-full bg-slate-100 rounded-lg flex items-center justify-center text-slate-400">
                                                             <Users className="h-8 w-8" />
