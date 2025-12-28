@@ -2,6 +2,7 @@
  * Events List Page
  * 
  * Browse campus events with category filters and registration status.
+ * Updated: Event display and registration improvements
  */
 
 import { useState, useEffect, useContext } from 'react';
