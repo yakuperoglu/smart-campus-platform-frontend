@@ -44,7 +44,19 @@ export default function MyGrades() {
 
           const gradesRes = await api.get('/grades');
           if (gradesRes.data.success) {
-            setGrades(gradesRes.data.data.grades || []);
+            // Map nested backend structure to flat structure used by component
+            const mappedGrades = (gradesRes.data.data.grades || []).map(g => ({
+              semester: g.section.semester,
+              year: g.section.year,
+              course_code: g.course.code,
+              course_name: g.course.name,
+              credits: g.course.credits,
+              midterm_grade: g.grades.midterm,
+              final_grade: g.grades.final,
+              letter_grade: g.grades.letter,
+              status: g.status
+            }));
+            setGrades(mappedGrades);
           }
         }
       } catch (err) {
