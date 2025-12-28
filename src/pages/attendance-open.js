@@ -1,6 +1,7 @@
 /**
  * Attendance Open Page (Faculty)
  * GPS-based attendance session creation page for faculty members
+ * Refactored for SaaS Aesthetic
  */
 
 import { useState, useEffect, useRef } from 'react';
@@ -9,9 +10,21 @@ import Head from 'next/head';
 import dynamic from 'next/dynamic';
 import { QRCodeSVG } from 'qrcode.react';
 import { useAuth } from '../context/AuthContext';
-import Navbar from '../components/Navbar';
+import DashboardLayout from '../components/layout/DashboardLayout';
 import api from '../config/api';
 import FeedbackMessage from '../components/FeedbackMessage';
+import {
+  MapPin,
+  Navigation,
+  Clock,
+  maximize2,
+  Radio,
+  Map as MapIcon,
+  CheckCircle,
+  AlertCircle,
+  QrCode,
+  X
+} from 'lucide-react';
 
 // Dynamic import for Leaflet (to prevent SSR issues)
 const MapContainer = dynamic(
@@ -42,7 +55,7 @@ if (typeof window !== 'undefined') {
 
 export default function AttendanceOpen() {
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { user, login, logout, loading: authLoading } = useAuth();
   const [sections, setSections] = useState([]);
   const [selectedSection, setSelectedSection] = useState(null);
   const [location, setLocation] = useState(null);
@@ -86,7 +99,7 @@ export default function AttendanceOpen() {
     }
   }, [user]);
 
-  // Konum alma fonksiyonu - Çok basit ve hızlı
+  // Konum alma fonksiyonu
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
       setLocationError('Your browser does not support location services.');
@@ -100,7 +113,7 @@ export default function AttendanceOpen() {
 
     let completed = false;
 
-    // Çok kısa güvenlik timeout'u - 12 saniye
+    // Timeout safety
     const safetyTimeout = setTimeout(() => {
       if (!completed) {
         completed = true;
@@ -110,7 +123,6 @@ export default function AttendanceOpen() {
       }
     }, 12000);
 
-    // Çok basit ayarlarla getCurrentPosition
     navigator.geolocation.getCurrentPosition(
       (position) => {
         if (completed) return;
@@ -169,7 +181,6 @@ export default function AttendanceOpen() {
       return;
     }
 
-    // Eğer konum yoksa ama sınıf konumu varsa, sınıf konumunu kullan
     let finalLocation = location;
     if (!finalLocation && selectedSection?.classroom?.gps_lat && selectedSection?.classroom?.gps_long) {
       finalLocation = {
@@ -201,15 +212,12 @@ export default function AttendanceOpen() {
           type: 'success',
           text: `Attendance session started successfully!`
         });
-
-        // Set active session to show QR view
         setActiveSession(response.data.data.session);
       }
     } catch (error) {
       const errorMessage = error.response?.data?.error?.message ||
         error.response?.data?.message ||
         'Error creating attendance session.';
-
       setMessage({ type: 'error', text: errorMessage });
     } finally {
       setCreating(false);
@@ -234,10 +242,8 @@ export default function AttendanceOpen() {
     let intervalId;
 
     if (activeSession && activeSession.id) {
-      // Set initial QR code
       setQrCodeValue(activeSession.session_code);
 
-      // Refresh function
       const refreshQr = async () => {
         try {
           const response = await api.put(`/attendance/sessions/${activeSession.id}/qr`);
@@ -249,7 +255,6 @@ export default function AttendanceOpen() {
         }
       };
 
-      // Set interval for 5 seconds
       intervalId = setInterval(refreshQr, 5000);
     }
 
@@ -263,7 +268,7 @@ export default function AttendanceOpen() {
     router.push('/dashboard');
   };
 
-  // Leaflet icon sorununu düzelt
+  // Fix Leaflet icon issue
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const L = require('leaflet');
@@ -276,562 +281,285 @@ export default function AttendanceOpen() {
     }
   }, []);
 
-  if (authLoading) {
-    return <div>Loading...</div>;
-  }
-
-  if (!user || user.role !== 'faculty') {
+  if (authLoading || !user || user.role !== 'faculty') {
     return null;
   }
 
   return (
-    <>
+    <DashboardLayout user={user} onLogout={logout}>
       <Head>
         <title>Open Attendance Session - Smart Campus</title>
-        <meta name="description" content="GPS-based attendance session creation page" />
       </Head>
 
-      <Navbar />
+      <div className="max-w-4xl mx-auto space-y-6 animate-in slide-in-from-bottom-2 duration-500">
 
-      <div className="attendance-container">
-        <div className="attendance-card">
-          <h1>📋 Open Attendance Session</h1>
-          <p className="subtitle">Create a GPS-based attendance session for your course</p>
-
-          {message.text && (
-            <FeedbackMessage
-              type={message.type}
-              message={message.text}
-              onClose={() => setMessage({ type: '', text: '' })}
-            />
-          )}
-
-          {/* Select Course */}
-          <div className="form-group">
-            <label htmlFor="section">Select Course:</label>
-            <select
-              id="section"
-              value={selectedSection?.id || ''}
-              onChange={(e) => {
-                const section = sections.find(s => s.id === e.target.value);
-                setSelectedSection(section);
-              }}
-              className="form-select"
-            >
-              <option value="">Select course...</option>
-              {sections.map((section) => (
-                <option key={section.id} value={section.id}>
-                  {section.course?.code || 'Course'} - {section.course?.name || 'Unnamed'}
-                  (Section {section.section_number}, {section.semester} {section.year})
-                </option>
-              ))}
-            </select>
-            {sections.length === 0 && (
-              <p className="help-text">No courses assigned to you yet.</p>
-            )}
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
+              <Radio className="h-6 w-6 text-blue-600 animate-pulse" />
+              Open Attendance Session
+            </h1>
+            <p className="mt-1 text-gray-500">Start a new GPS & QR based attendance checkpoint</p>
           </div>
+        </div>
 
-          {/* Sınıf Konumu Kullan */}
-          {selectedSection?.classroom && (
-            <div className="form-group">
-              <button
-                onClick={useClassroomLocation}
-                className="btn-secondary"
-                style={{ width: '100%' }}
+        {/* Feedback Message */}
+        <FeedbackMessage
+          type={message.type}
+          message={message.text}
+          onClose={() => setMessage({ type: '', text: '' })}
+        />
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column: Settings */}
+          <div className="lg:col-span-1 space-y-6">
+
+            {/* Course Selector */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <label htmlFor="section" className="block text-sm font-bold text-gray-700 mb-2">
+                Select Course
+              </label>
+              <select
+                id="section"
+                value={selectedSection?.id || ''}
+                onChange={(e) => {
+                  const section = sections.find(s => s.id === e.target.value);
+                  setSelectedSection(section);
+                }}
+                className="block w-full rounded-xl border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 py-2.5"
               >
-                🏫 Use Classroom Location ({selectedSection.classroom.building} {selectedSection.classroom.room_number})
-              </button>
-            </div>
-          )}
-
-          {/* Konum Bilgisi */}
-          <div className="location-section">
-            <div className="location-header">
-              <h3>Location Information</h3>
-              <button
-                onClick={getCurrentLocation}
-                disabled={loadingLocation}
-                className="btn-secondary"
-              >
-                {loadingLocation ? 'Getting Location...' : '📍 Get Location'}
-              </button>
+                <option value="">Select a course...</option>
+                {sections.map((section) => (
+                  <option key={section.id} value={section.id}>
+                    {section.course?.code} - {section.course?.name} ({section.section_number})
+                  </option>
+                ))}
+              </select>
+              {sections.length === 0 && (
+                <p className="text-xs text-red-500 mt-2">No courses assigned to you yet.</p>
+              )}
             </div>
 
-            {locationError && (
-              <div className="error-box">
-                <p>{locationError}</p>
-              </div>
-            )}
+            {/* Location Controls */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-gray-500" />
+                Location Source
+              </h3>
 
-            {location && location.lat && location.lng && (
-              <div className="location-info">
-                <p>
-                  <strong>Latitude:</strong> {location.lat?.toFixed(6) || 'N/A'}
-                </p>
-                <p>
-                  <strong>Longitude:</strong> {location.lng?.toFixed(6) || 'N/A'}
-                </p>
-                {gpsAccuracy && (
-                  <p>
-                    <strong>GPS Accuracy:</strong> ±{Math.round(gpsAccuracy)}m
-                  </p>
+              <div className="space-y-3">
+                <button
+                  onClick={getCurrentLocation}
+                  disabled={loadingLocation}
+                  className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-wait"
+                >
+                  {loadingLocation ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-gray-500 border-t-transparent rounded-full animate-spin mr-2"></span>
+                      Locating...
+                    </>
+                  ) : (
+                    <>
+                      <Navigation className="h-4 w-4 mr-2 text-blue-600" />
+                      Get My GPS Location
+                    </>
+                  )}
+                </button>
+
+                {selectedSection?.classroom && (
+                  <button
+                    onClick={useClassroomLocation}
+                    className="w-full flex items-center justify-center px-4 py-2 border border-blue-200 shadow-sm text-sm font-medium rounded-lg text-blue-700 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    <MapIcon className="h-4 w-4 mr-2" />
+                    Use Classroom ({selectedSection.classroom.building} {selectedSection.classroom.room_number})
+                  </button>
                 )}
               </div>
-            )}
-          </div>
 
-          {/* Yoklama Ayarları */}
-          <div className="settings-section">
-            <h3>Attendance Settings</h3>
+              {locationError && (
+                <div className="mt-3 p-3 bg-red-50 border border-red-100 rounded-lg text-xs text-red-600">
+                  {locationError}
+                </div>
+              )}
 
-            <div className="form-group">
-              <label htmlFor="radius">
-                Allowed Distance (meters): {radius}m
-              </label>
-              <input
-                type="range"
-                id="radius"
-                min="5"
-                max="100"
-                value={radius}
-                onChange={(e) => setRadius(parseInt(e.target.value))}
-                className="slider"
-              />
-              <div className="slider-labels">
-                <span>5m</span>
-                <span>100m</span>
-              </div>
+              {gpsAccuracy && (
+                <div className="mt-3 flex items-center justify-center text-xs text-gray-500">
+                  <CheckCircle className="h-3 w-3 mr-1 text-green-500" />
+                  Accuracy: ±{Math.round(gpsAccuracy)}m
+                </div>
+              )}
             </div>
 
-            <div className="form-group">
-              <label htmlFor="duration">
-                Session Duration (minutes):
-              </label>
-              <input
-                type="number"
-                id="duration"
-                min="5"
-                max="480"
-                value={duration}
-                onChange={(e) => setDuration(parseInt(e.target.value) || 90)}
-                className="form-input"
-              />
-              <p className="help-text">Students can check in within this time period</p>
-            </div>
-          </div>
+            {/* Session Settings */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <Clock className="h-4 w-4 text-gray-500" />
+                Session Settings
+              </h3>
 
-          {/* Harita */}
-          {location && location.lat && location.lng && typeof window !== 'undefined' && (
-            <div className="map-container">
-              <MapContainer
-                center={[location.lat, location.lng]}
-                zoom={18}
-                style={{ height: '400px', width: '100%', zIndex: 1 }}
-                ref={mapRef}
-              >
-                <TileLayer
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                />
-
-                {/* Konum Marker */}
-                <Marker position={[location.lat, location.lng]}>
-                  <Popup>
-                    <strong>Attendance Location</strong>
-                    <br />
-                    {location.lat?.toFixed(6) || 'N/A'}, {location.lng?.toFixed(6) || 'N/A'}
-                    <br />
-                    Allowed distance: {radius || 0}m
-                  </Popup>
-                </Marker>
-
-                {/* Geofence Circle */}
-                {radius && (
-                  <Circle
-                    center={[location.lat, location.lng]}
-                    radius={radius}
-                    pathOptions={{
-                      color: '#667eea',
-                      fillColor: '#667eea',
-                      fillOpacity: 0.2,
-                      weight: 2
-                    }}
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 block">
+                    Range Radius ({radius}m)
+                  </label>
+                  <input
+                    type="range"
+                    min="5"
+                    max="100"
+                    value={radius}
+                    onChange={(e) => setRadius(parseInt(e.target.value))}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
                   />
-                )}
-              </MapContainer>
+                  <div className="flex justify-between text-xs text-gray-400 mt-1">
+                    <span>5m</span>
+                    <span>100m</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 block">
+                    Duration ({duration} mins)
+                  </label>
+                  <input
+                    type="number"
+                    min="5"
+                    max="480"
+                    value={duration}
+                    onChange={(e) => setDuration(parseInt(e.target.value) || 90)}
+                    className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                  />
+                </div>
+              </div>
             </div>
-          )}
 
-          {/* Yoklama Oturumu Aç Butonu */}
-          <button
-            onClick={handleCreateSession}
-            disabled={(!location && !selectedSection?.classroom) || !selectedSection || creating}
-            className="btn-primary btn-large"
-            style={{ marginTop: '20px', width: '100%' }}
-          >
-            {creating ? 'Creating Session...' : '✅ Open Attendance Session'}
-          </button>
+            {/* Action Button */}
+            <button
+              onClick={handleCreateSession}
+              disabled={(!location && !selectedSection?.classroom) || !selectedSection || creating}
+              className="w-full flex items-center justify-center px-6 py-4 border border-transparent text-base font-bold rounded-xl shadow-lg text-white bg-slate-900 hover:bg-black transition-all transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-900 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+            >
+              {creating ? 'Creating Session...' : 'Start Session'}
+            </button>
+          </div>
 
-          {!location && !selectedSection?.classroom && (
-            <p className="help-text">
-              ⚠️ Please get your location or use classroom location to open attendance session.
-            </p>
-          )}
-
-          {!selectedSection && (
-            <p className="help-text">
-              ⚠️ Please select a course.
-            </p>
-          )}
-
-          {selectedSection?.classroom && !location && (
-            <p className="help-text" style={{ background: '#d4edda', color: '#155724' }}>
-              💡 Tip: Classroom location is available. You can click "Use Classroom Location" to open attendance without GPS.
-            </p>
-          )}
+          {/* Right Column: Map Preview */}
+          <div className="lg:col-span-2">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden h-full min-h-[500px] relative">
+              {location && location.lat && location.lng ? (
+                <div className="h-full w-full absolute inset-0">
+                  <MapContainer
+                    center={[location.lat, location.lng]}
+                    zoom={18}
+                    style={{ height: '100%', width: '100%' }}
+                    ref={mapRef}
+                  >
+                    <TileLayer
+                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
+                    <Marker position={[location.lat, location.lng]}>
+                      <Popup>
+                        <strong>Check-in Point</strong>
+                        <br />
+                        Radius: {radius}m
+                      </Popup>
+                    </Marker>
+                    <Circle
+                      center={[location.lat, location.lng]}
+                      radius={radius}
+                      pathOptions={{
+                        color: '#2563eb',
+                        fillColor: '#3b82f6',
+                        fillOpacity: 0.2,
+                        weight: 2
+                      }}
+                    />
+                  </MapContainer>
+                </div>
+              ) : (
+                <div className="h-full flex flex-col items-center justify-center p-8 text-center text-gray-400 bg-gray-50">
+                  <MapPin className="h-16 w-16 mb-4 opacity-20" />
+                  <h3 className="text-lg font-medium text-gray-900">Map Unavailable</h3>
+                  <p className="max-w-xs mx-auto text-sm mt-2">
+                    Please retrieve your location or select a classroom from the settings panel to preview the geofence area.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Live Session Modal / Overlay */}
+      {/* Live Session Modal */}
       {activeSession && (
-        <div className="live-session-overlay">
-          <div className="live-session-card">
-            <div className="live-header">
-              <h2>📡 Live Attendance Session</h2>
-              <span className="live-badge">LIVE</span>
-            </div>
+        <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
 
-            <div className="course-info">
-              <h3>{activeSession.course?.code} - {activeSession.course?.name}</h3>
-              <p>Section {activeSession.section?.section_number}</p>
-            </div>
+            <div className="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div className="flex justify-between items-start">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-800 animate-pulse">
+                      LIVE
+                    </span>
+                    <h3 className="text-lg leading-6 font-bold text-gray-900" id="modal-title">
+                      Live Attendance Session
+                    </h3>
+                  </div>
+                  <button onClick={closeLiveSession} className="text-gray-400 hover:text-gray-500">
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
 
-            <div className="qr-section">
-              <div className="qr-container">
-                {qrCodeValue ? (
-                  <QRCodeSVG
-                    value={activeSession.session_code}
-                    size={256}
-                    level={"H"}
-                    includeMargin={true}
-                  />
-                ) : (
-                  <p>Loading QR...</p>
-                )}
+                <div className="mt-4 text-center">
+                  <h4 className="text-xl font-bold text-indigo-900">
+                    {activeSession.course?.code}
+                  </h4>
+                  <p className="text-sm text-gray-500 mb-6">Section {activeSession.section?.section_number}</p>
+
+                  <div className="bg-white p-4 inline-block rounded-xl border-2 border-gray-100 shadow-lg mb-4">
+                    {qrCodeValue ? (
+                      <QRCodeSVG
+                        value={activeSession.session_code}
+                        size={200}
+                        level={"H"}
+                        includeMargin={true}
+                      />
+                    ) : (
+                      <div className="w-[200px] h-[200px] flex items-center justify-center bg-gray-50 rounded-lg">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-3xl font-black text-gray-900 tracking-widest font-mono">
+                      {qrCodeValue}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Code refreshes every 5 seconds for security
+                    </p>
+                  </div>
+                </div>
               </div>
-              <p className="qr-code-text">Session Code: <strong>{qrCodeValue}</strong></p>
-              <p className="refresh-note">QR Code refreshes every 5 seconds</p>
-            </div>
 
-            <div className="session-actions">
-              <button onClick={closeLiveSession} className="btn-secondary">
-                Close & Return to Dashboard
-              </button>
+              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-gray-100">
+                <button
+                  type="button"
+                  className="w-full inline-flex justify-center rounded-xl border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm"
+                  onClick={closeLiveSession}
+                >
+                  End Session
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
-
-      <style jsx>{`
-        .live-session-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0,0,0,0.85);
-          z-index: 1000;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 20px;
-        }
-
-        .live-session-card {
-          background: white;
-          padding: 40px;
-          border-radius: 20px;
-          width: 100%;
-          max-width: 500px;
-          text-align: center;
-          box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-          animation: slideUp 0.3s ease-out;
-        }
-
-        @keyframes slideUp {
-          from { transform: translateY(50px); opacity: 0; }
-          to { transform: translateY(0); opacity: 1; }
-        }
-
-        .live-header {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 15px;
-          margin-bottom: 20px;
-        }
-
-        .live-header h2 {
-          margin: 0;
-          color: #2c3e50;
-        }
-
-        .live-badge {
-          background: #e74c3c;
-          color: white;
-          padding: 5px 10px;
-          border-radius: 4px;
-          font-weight: bold;
-          font-size: 0.8rem;
-          animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-          0% { opacity: 1; }
-          50% { opacity: 0.5; }
-          100% { opacity: 1; }
-        }
-
-        .qr-section {
-          margin: 30px 0;
-          padding: 20px;
-          background: #f8f9fa;
-          border-radius: 12px;
-        }
-
-        .qr-container {
-          background: white;
-          padding: 15px;
-          display: inline-block;
-          border-radius: 8px;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-          margin-bottom: 15px;
-        }
-
-        .qr-code-text {
-          font-size: 1.2rem;
-          color: #34495e;
-          margin-bottom: 5px;
-        }
-
-        .refresh-note {
-          color: #7f8c8d;
-          font-size: 0.9rem;
-        }
-
-        .attendance-container {
-          min-height: 100vh;
-          padding: 20px;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-
-        .attendance-card {
-          max-width: 900px;
-          margin: 0 auto;
-          background: white;
-          border-radius: 12px;
-          padding: 30px;
-          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-        }
-
-        .attendance-card h1 {
-          color: #2c3e50;
-          margin-bottom: 10px;
-          font-size: 2rem;
-        }
-
-        .subtitle {
-          color: #7f8c8d;
-          margin-bottom: 30px;
-          font-size: 1.1rem;
-        }
-
-        .form-group {
-          margin-bottom: 20px;
-        }
-
-        .form-group label {
-          display: block;
-          margin-bottom: 8px;
-          color: #2c3e50;
-          font-weight: 600;
-        }
-
-        .form-select,
-        .form-input {
-          width: 100%;
-          padding: 12px;
-          border: 2px solid #e0e0e0;
-          border-radius: 8px;
-          font-size: 1rem;
-          transition: border-color 0.3s;
-        }
-
-        .form-select:focus,
-        .form-input:focus {
-          outline: none;
-          border-color: #667eea;
-        }
-
-        .location-section,
-        .settings-section {
-          margin: 30px 0;
-          padding: 20px;
-          background: #f8f9fa;
-          border-radius: 8px;
-        }
-
-        .location-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 15px;
-        }
-
-        .location-header h3,
-        .settings-section h3 {
-          color: #2c3e50;
-          margin: 0;
-        }
-
-        .location-info {
-          margin-top: 15px;
-          padding: 15px;
-          background: white;
-          border-radius: 6px;
-        }
-
-        .location-info p {
-          margin: 8px 0;
-          color: #34495e;
-        }
-
-        .slider {
-          width: 100%;
-          height: 8px;
-          border-radius: 5px;
-          background: #ddd;
-          outline: none;
-          -webkit-appearance: none;
-        }
-
-        .slider::-webkit-slider-thumb {
-          -webkit-appearance: none;
-          appearance: none;
-          width: 20px;
-          height: 20px;
-          border-radius: 50%;
-          background: #667eea;
-          cursor: pointer;
-        }
-
-        .slider::-moz-range-thumb {
-          width: 20px;
-          height: 20px;
-          border-radius: 50%;
-          background: #667eea;
-          cursor: pointer;
-        }
-
-        .slider-labels {
-          display: flex;
-          justify-content: space-between;
-          margin-top: 5px;
-          font-size: 0.9rem;
-          color: #7f8c8d;
-        }
-
-        .map-container {
-          margin: 20px 0;
-          border-radius: 8px;
-          overflow: hidden;
-          border: 2px solid #e0e0e0;
-        }
-
-        .error-box {
-          padding: 15px;
-          background: #f8d7da;
-          border: 1px solid #e74c3c;
-          border-radius: 6px;
-          color: #721c24;
-          margin-top: 10px;
-        }
-
-        .btn-primary {
-          background: #667eea;
-          color: white;
-          border: none;
-          padding: 14px 28px;
-          border-radius: 8px;
-          font-size: 1.1rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.3s;
-        }
-
-        .btn-primary:hover:not(:disabled) {
-          background: #5568d3;
-          transform: translateY(-2px);
-          box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-primary:disabled {
-          background: #bdc3c7;
-          cursor: not-allowed;
-          transform: none;
-        }
-
-        .btn-secondary {
-          background: #3498db;
-          color: white;
-          border: none;
-          padding: 10px 20px;
-          border-radius: 6px;
-          font-size: 0.9rem;
-          cursor: pointer;
-          transition: all 0.3s;
-        }
-
-        .btn-secondary:hover:not(:disabled) {
-          background: #2980b9;
-        }
-
-        .btn-secondary:disabled {
-          background: #bdc3c7;
-          cursor: not-allowed;
-        }
-
-        .btn-large {
-          padding: 16px 32px;
-          font-size: 1.2rem;
-        }
-
-        .help-text {
-          margin-top: 10px;
-          padding: 12px;
-          background: #fff3cd;
-          border-radius: 6px;
-          color: #856404;
-          text-align: center;
-          font-size: 0.9rem;
-        }
-
-        @media (max-width: 768px) {
-          .attendance-card {
-            padding: 20px;
-          }
-
-          .location-header {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 10px;
-          }
-
-          .map-container {
-            height: 300px !important;
-          }
-        }
-      `}</style>
-    </>
+    </DashboardLayout>
   );
 }

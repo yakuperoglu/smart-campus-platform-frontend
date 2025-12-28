@@ -153,12 +153,15 @@ export default function Login() {
               </Link>
             </div>
 
-            <div className="bg-gray-50 rounded-lg p-4 text-xs text-gray-500 space-y-1 border border-gray-100">
-              <p className="font-semibold text-gray-700 mb-2">Demo Credentials:</p>
+            <div className="bg-blue-50 rounded-lg p-4 text-xs text-blue-700 space-y-2 border border-blue-100">
+              <p className="font-bold text-blue-800 mb-1 flex items-center">
+                <span className="mr-2">ℹ️</span> Demo Credentials:
+              </p>
               <div className="grid grid-cols-1 gap-1">
-                <p><span className="font-medium">Admin:</span> admin@smartcampus.edu / admin123</p>
-                <p><span className="font-medium">Faculty:</span> john.doe@smartcampus.edu / faculty123</p>
-                <p><span className="font-medium">Student:</span> student1@smartcampus.edu / student123</p>
+                <p><span className="font-semibold">Admin:</span> admin@smartcampus.edu / admin123</p>
+                <p><span className="font-semibold">Faculty:</span> john.doe@smartcampus.edu / faculty123</p>
+                <p><span className="font-semibold">Student:</span> student1@smartcampus.edu / student123</p>
+                <p className="mt-2 text-blue-600 opacity-80 italic">If 'student123' fails, try '123456'</p>
               </div>
             </div>
           </div>
