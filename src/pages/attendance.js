@@ -8,10 +8,13 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import dynamic from 'next/dynamic';
 import { useAuth } from '../context/AuthContext';
-import Navbar from '../components/Navbar';
+import DashboardLayout from '../components/layout/DashboardLayout';
 import api from '../config/api';
 import FeedbackMessage from '../components/FeedbackMessage';
-import { Html5QrcodeScanner } from 'html5-qrcode';// Dynamic import for Leaflet (to prevent SSR issues)
+import { Html5QrcodeScanner } from 'html5-qrcode';
+import { MapPin, QrCode, Navigation, AlertTriangle, CheckCircle, RefreshCw } from 'lucide-react';
+
+// Dynamic import for Leaflet (to prevent SSR issues)
 const MapContainer = dynamic(
   () => import('react-leaflet').then((mod) => mod.MapContainer),
   { ssr: false }
@@ -40,7 +43,7 @@ if (typeof window !== 'undefined') {
 
 export default function Attendance() {
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { user, logout, loading: authLoading } = useAuth();
   const [location, setLocation] = useState(null);
   const [locationError, setLocationError] = useState(null);
   const [loadingLocation, setLoadingLocation] = useState(false);
@@ -51,7 +54,9 @@ export default function Attendance() {
   const [showScanner, setShowScanner] = useState(false);
   const mapRef = useRef(null);
   const [message, setMessage] = useState({ type: '', text: '' });
-  const [gpsAccuracy, setGpsAccuracy] = useState(null);  // Redirect if not authenticated or not student
+  const [gpsAccuracy, setGpsAccuracy] = useState(null);
+
+  // Redirect if not authenticated or not student
   useEffect(() => {
     if (!authLoading && (!user || user.role !== 'student')) {
       router.push('/dashboard');
@@ -93,7 +98,8 @@ export default function Attendance() {
       getCurrentLocation();
     }
   }, [user]);
-  // Konum alma fonksiyonu - Çok basit ve hızlı
+
+  // Konum alma fonksiyonu
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
       setLocationError('Your browser does not support location services.');
@@ -106,18 +112,15 @@ export default function Attendance() {
     setMessage({ type: '', text: '' });
 
     let completed = false;
-
-    // Çok kısa güvenlik timeout'u - 12 saniye
     const safetyTimeout = setTimeout(() => {
       if (!completed) {
         completed = true;
         setLoadingLocation(false);
-        setLocationError('Location request timed out. Please check location permissions in your browser settings.');
-        setMessage({ type: 'error', text: 'Location request timed out. Please check location permissions in browser settings.' });
+        setLocationError('Location request timed out. Please check permissions.');
+        setMessage({ type: 'error', text: 'Location request timed out. Check permissions.' });
       }
     }, 12000);
 
-    // Çok basit ayarlarla getCurrentPosition
     navigator.geolocation.getCurrentPosition(
       (position) => {
         if (completed) return;
@@ -128,7 +131,7 @@ export default function Attendance() {
         setGpsAccuracy(accuracy || null);
         setLoadingLocation(false);
         setLocationError(null);
-        setMessage({ type: 'success', text: 'Your location was successfully retrieved!' });
+        setMessage({ type: 'success', text: 'Location retrieved successfully!' });
       },
       (error) => {
         if (completed) return;
@@ -139,16 +142,16 @@ export default function Attendance() {
 
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            errorMessage = 'Location permission denied. Please enable location access in browser settings (lock icon in address bar) and refresh the page.';
+            errorMessage = 'Location permission denied. Enable location access.';
             break;
           case error.POSITION_UNAVAILABLE:
-            errorMessage = 'Location information unavailable. Make sure your GPS is enabled.';
+            errorMessage = 'Location information unavailable. Check GPS.';
             break;
           case error.TIMEOUT:
-            errorMessage = 'Location request timed out. Please try again.';
+            errorMessage = 'Location request timed out.';
             break;
           default:
-            errorMessage = `Unable to get location: ${error.message || 'Unknown error'}`;
+            errorMessage = `Location Error: ${error.message}`;
         }
 
         setLocationError(errorMessage);
@@ -156,8 +159,8 @@ export default function Attendance() {
       },
       {
         enableHighAccuracy: false,
-        timeout: 10000, // 10 saniye - çok kısa
-        maximumAge: 600000 // 10 dakika önceki konumu kabul et
+        timeout: 10000,
+        maximumAge: 600000
       }
     );
   };
@@ -197,20 +200,17 @@ export default function Attendance() {
       const scanner = new Html5QrcodeScanner(
         "reader",
         { fps: 10, qrbox: { width: 250, height: 250 } },
-        /* verbose= */ false
+        false
       );
 
-      scanner.render((decodedText, decodedResult) => {
-        // Handle success
+      scanner.render((decodedText) => {
         scanner.clear();
         setShowScanner(false);
-        handleCheckIn(decodedText); // Pass scanned code
-      }, (error) => {
-        // console.warn(error);
-      });
+        handleCheckIn(decodedText);
+      }, (error) => { });
 
       return () => {
-        scanner.clear().catch(error => console.error("Failed to clear scanner", error));
+        scanner.clear().catch(console.error);
       };
     }
   }, [showScanner]);
@@ -223,7 +223,7 @@ export default function Attendance() {
     }
 
     if (!selectedSession && !qrCode) {
-      setMessage({ type: 'error', text: 'Please select a session or scan QR code.' });
+      setMessage({ type: 'error', text: 'Select a session or scan QR code.' });
       return;
     }
 
@@ -271,8 +271,7 @@ export default function Attendance() {
     }
   };
 
-
-  // Leaflet icon sorununu düzelt
+  // Leaflet icon fix
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const L = require('leaflet');
@@ -285,497 +284,221 @@ export default function Attendance() {
     }
   }, []);
 
-  if (authLoading) {
-    return <div>Loading...</div>;
-  }
-
-  if (!user || user.role !== 'student') {
+  if (authLoading || (!user || user.role !== 'student')) {
     return null;
   }
 
   return (
-    <>
+    <DashboardLayout user={user} onLogout={logout}>
       <Head>
         <title>Check-in - Smart Campus</title>
-        <meta name="description" content="GPS-based attendance check-in page" />
       </Head>
 
-      <Navbar />
+      <FeedbackMessage
+        type={message.type}
+        message={message.text}
+        onClose={() => setMessage({ type: '', text: '' })}
+      />
 
-      <div className="attendance-container">
-        <div className="attendance-card">
-          <h1>📍 Attendance Check-in</h1>
-          <p className="subtitle">Check in using your location</p>
+      <div className="mb-6 animate-in slide-in-from-bottom-2 duration-500">
+        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Attendance Check-in</h1>
+        <p className="text-gray-500 mt-1">Check in to your classes using GPS or QR Code.</p>
+      </div>
 
-          {message.text && (
-            <FeedbackMessage
-              type={message.type}
-              message={message.text}
-              onClose={() => setMessage({ type: '', text: '' })}
-            />
-          )}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Left Column: Controls */}
+        <div className="space-y-6 animate-in slide-in-from-bottom-3 duration-500 delay-100">
 
-          {/* Aktif Oturum Seçimi */}
-          {activeSessions.length > 0 ? (
-            <div className="form-group">
-              <label htmlFor="session">Select Attendance Session:</label>
-              <select
-                id="session"
-                value={selectedSession?.id || ''}
-                onChange={(e) => {
-                  const session = activeSessions.find(s => s.id === e.target.value);
-                  setSelectedSession(session);
-                }}
-                className="form-select"
-              >
-                <option value="">Select session...</option>
-                {activeSessions.map((session) => {
-                  let timeStr = '';
-                  try {
-                    if (session.start_time || session.timing?.start_time) {
-                      const date = new Date(session.start_time || session.timing?.start_time);
-                      if (!isNaN(date.getTime())) {
-                        timeStr = date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
-                      }
-                    }
-                  } catch (e) {
-                    console.error('Date parsing error:', e);
-                  }
-                  const attendedText = session.already_checked_in ? ' ✅ (Attended)' : '';
-                  return (
+          {/* Active Session Selection */}
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <Navigation className="h-5 w-5 text-blue-500" />
+              Select Session
+            </h3>
+
+            {activeSessions.length > 0 ? (
+              <div className="space-y-4">
+                <select
+                  id="session"
+                  value={selectedSession?.id || ''}
+                  onChange={(e) => {
+                    const session = activeSessions.find(s => s.id === e.target.value);
+                    setSelectedSession(session);
+                  }}
+                  className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-lg border"
+                >
+                  <option value="">-- Choose active class --</option>
+                  {activeSessions.map((session) => (
                     <option key={session.id} value={session.id}>
-                      {session.section?.course?.name || 'Course'} -
-                      {session.section?.section_number ? ` Section ${session.section.section_number}` : ''}
-                      {timeStr ? ` (${timeStr})` : ''}
-                      {attendedText}
+                      {session.section?.course?.name} ({session.section?.course?.code})
                     </option>
-                  );
-                })}
-              </select>
+                  ))}
+                </select>
 
-              {/* Already attended notice */}
-              {selectedSession?.already_checked_in && (
-                <div className="success-box" style={{ marginTop: '15px', padding: '15px', background: '#d4edda', border: '1px solid #28a745', borderRadius: '8px', color: '#155724' }}>
-                  <p style={{ margin: 0 }}>
-                    ✅ <strong>You have already attended this session!</strong> Status: {selectedSession.check_in_status === 'present' ? 'Present' : selectedSession.check_in_status === 'late' ? 'Late' : selectedSession.check_in_status}
-                  </p>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="info-box">
-              <p>No active attendance sessions available at the moment.</p>
-            </div>
-          )}
-
-          {/* Konum Bilgisi */}
-          <div className="location-section">
-            <div className="location-header">
-              <h3>Location Information</h3>
-              <button
-                onClick={getCurrentLocation}
-                disabled={loadingLocation}
-                className="btn-secondary"
-              >
-                {loadingLocation ? 'Getting Location...' : '📍 Get Location'}
-              </button>
-            </div>
-
-            {locationError && (
-              <div className="error-box">
-                <p>{locationError}</p>
-              </div>
-            )}
-
-            {location && location.lat && location.lng && (
-              <div className="location-info">
-                <p>
-                  <strong>Latitude:</strong> {location.lat.toFixed(6)}
-                </p>
-                <p>
-                  <strong>Longitude:</strong> {location.lng.toFixed(6)}
-                </p>
-                {gpsAccuracy && (
-                  <p>
-                    <strong>GPS Accuracy:</strong> ±{Math.round(gpsAccuracy)}m
-                  </p>
-                )}          {/* Scanner Modal */}
-                {showScanner && (
-                  <div className="scanner-modal">
-                    <div className="scanner-container">
-                      <h3>Scan QR Code</h3>
-                      <div id="reader" width="100%"></div>
-                      <button onClick={() => setShowScanner(false)} className="btn-secondary" style={{ marginTop: '10px' }}>
-                        Cancel
-                      </button>
-                    </div>
+                {selectedSession?.already_checked_in && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center gap-3 text-green-700">
+                    <CheckCircle className="h-5 w-5" />
+                    <span className="text-sm font-medium">You have already checked in.</span>
                   </div>
                 )}
-
-                <div className="action-buttons">
-                  <button
-                    onClick={() => handleCheckIn(null)}
-                    disabled={!location || !selectedSession || checkingIn || selectedSession?.already_checked_in}
-                    className="btn-primary"
-                  >
-                    {checkingIn ? 'Submitting...' : selectedSession?.already_checked_in ? '✅ Already Attended' : '📍 Check In (GPS)'}
-                  </button>
-
-                  <button
-                    onClick={() => setShowScanner(true)}
-                    disabled={!location || checkingIn}
-                    className="btn-primary"
-                    style={{ background: '#2c3e50' }}
-                  >
-                    📷 Scan QR & Check In
-                  </button>
-                </div>              </div>
-            )}
-
-            {/* Mesafe Bilgisi */}
-            {distance !== null && selectedSession && selectedSession.geofence_radius && (
-              <div className={`distance-info ${distance <= selectedSession.geofence_radius ? 'within-radius' : 'outside-radius'}`}>
-                <p>
-                  <strong>Distance to Classroom:</strong> {distance?.toFixed(1) || '0'}m
-                </p>
-                <p>
-                  <strong>Allowed Distance:</strong> {selectedSession.geofence_radius}m
-                </p>
-                {distance <= selectedSession.geofence_radius ? (
-                  <p className="status-success">✅ You are within the classroom area</p>
-                ) : (
-                  <p className="status-error">❌ You are outside the classroom area</p>
-                )}
+              </div>
+            ) : (
+              <div className="text-center py-6 bg-gray-50 rounded-lg border border-dashed border-gray-200">
+                <p className="text-gray-500 text-sm">No active sessions found nearby.</p>
               </div>
             )}
           </div>
 
-          {/* Harita */}
-          {location && location.lat && location.lng && typeof window !== 'undefined' && (
-            <div className="map-container">
-              <MapContainer
-                center={[location.lat, location.lng]}
-                zoom={18}
-                style={{ height: '400px', width: '100%', zIndex: 1 }}
-                ref={mapRef}
+          {/* Location Status */}
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <MapPin className="h-5 w-5 text-red-500" />
+                Location Status
+              </h3>
+              <button
+                onClick={getCurrentLocation}
+                disabled={loadingLocation}
+                className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                title="Refresh Location"
               >
-                <TileLayer
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                />
+                <RefreshCw className={`h-4 w-4 ${loadingLocation ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
 
-                {/* Öğrenci Konumu */}
-                <Marker position={[location.lat, location.lng]}>
-                  <Popup>
-                    <strong>My Location</strong>
-                    <br />
-                    {location.lat?.toFixed(6) || 'N/A'}, {location.lng?.toFixed(6) || 'N/A'}
-                  </Popup>
-                </Marker>
+            {locationError ? (
+              <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm border border-red-100 flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                {locationError}
+              </div>
+            ) : location ? (
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm py-2 border-b border-gray-50">
+                  <span className="text-gray-500">Latitude</span>
+                  <span className="font-mono font-medium text-gray-900">{location.lat.toFixed(6)}</span>
+                </div>
+                <div className="flex justify-between text-sm py-2 border-b border-gray-50">
+                  <span className="text-gray-500">Longitude</span>
+                  <span className="font-mono font-medium text-gray-900">{location.lng.toFixed(6)}</span>
+                </div>
+                <div className="flex justify-between text-sm py-2">
+                  <span className="text-gray-500">Accuracy</span>
+                  <span className="font-mono font-medium text-gray-900">±{Math.round(gpsAccuracy)}m</span>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-4 bg-gray-50 rounded-lg border border-dashed border-gray-200">
+                <p className="text-gray-400 italic text-sm">Location not yet retrieved</p>
+              </div>
+            )}
+          </div>
 
-                {/* Sınıf Konumu */}
-                {selectedSession && selectedSession.center_lat && selectedSession.center_long && (
-                  <>
-                    <Marker position={[selectedSession.center_lat, selectedSession.center_long]}>
-                      <Popup>
-                        <strong>Classroom Location</strong>
-                        <br />
-                        {selectedSession.center_lat?.toFixed(6) || 'N/A'}, {selectedSession.center_long?.toFixed(6) || 'N/A'}
-                        <br />
-                        Allowed distance: {selectedSession.geofence_radius || 0}m
-                      </Popup>
-                    </Marker>
+          {/* Action Buttons */}
+          <div className="grid grid-cols-2 gap-4">
+            <button
+              onClick={() => handleCheckIn(null)}
+              disabled={!location || !selectedSession || checkingIn || selectedSession?.already_checked_in}
+              className={`flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold shadow-sm transition-all
+                  ${!location || !selectedSession || checkingIn || selectedSession?.already_checked_in
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-md'}`}
+            >
+              <div className="flex flex-col items-center">
+                <span className="text-sm">Check In</span>
+                <span className="text-[10px] font-normal opacity-80">(GPS Only)</span>
+              </div>
+            </button>
 
-                    {/* Geofence Circle */}
-                    {selectedSession.geofence_radius && (
-                      <Circle
-                        center={[selectedSession.center_lat, selectedSession.center_long]}
-                        radius={selectedSession.geofence_radius}
-                        pathOptions={{
-                          color: distance !== null && distance <= selectedSession.geofence_radius ? '#27ae60' : '#e74c3c',
-                          fillColor: distance !== null && distance <= selectedSession.geofence_radius ? '#27ae60' : '#e74c3c',
-                          fillOpacity: 0.2,
-                          weight: 2
-                        }}
-                      />
-                    )}
-                  </>
-                )}
-              </MapContainer>
+            <button
+              onClick={() => setShowScanner(true)}
+              disabled={!location || checkingIn}
+              className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold shadow-sm bg-slate-900 text-white hover:bg-black transition-all"
+            >
+              <QrCode className="h-5 w-5" />
+              <span className="text-sm">Scan QR</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Right Column: Map */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden h-[500px] relative animate-in slide-in-from-bottom-3 duration-500 delay-200">
+          {location && typeof window !== 'undefined' ? (
+            <MapContainer
+              center={[location.lat, location.lng]}
+              zoom={18}
+              style={{ height: '100%', width: '100%' }}
+              ref={mapRef}
+            >
+              <TileLayer
+                attribution='&copy; OpenStreetMap contributors'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              <Marker position={[location.lat, location.lng]}>
+                <Popup>You are here</Popup>
+              </Marker>
+
+              {selectedSession && selectedSession.center_lat && (
+                <>
+                  <Marker position={[selectedSession.center_lat, selectedSession.center_long]}>
+                    <Popup>Classroom: {selectedSession.section?.course?.code}</Popup>
+                  </Marker>
+                  <Circle
+                    center={[selectedSession.center_lat, selectedSession.center_long]}
+                    radius={selectedSession.geofence_radius}
+                    pathOptions={{
+                      color: distance !== null && distance <= selectedSession.geofence_radius ? '#22c55e' : '#ef4444',
+                      fillColor: distance !== null && distance <= selectedSession.geofence_radius ? '#22c55e' : '#ef4444',
+                      fillOpacity: 0.2
+                    }}
+                  />
+                </>
+              )}
+            </MapContainer>
+          ) : (
+            <div className="h-full flex flex-col items-center justify-center bg-gray-50 text-gray-400">
+              <MapPin className="h-12 w-12 mb-2 opacity-20" />
+              <p>Map will load when location is available</p>
             </div>
           )}
 
-
-
-          {!location && (
-            <p className="help-text">
-              ⚠️ Please get your location first to check in.
-            </p>
-          )}
-
-          {location && selectedSession && distance !== null && distance > selectedSession.geofence_radius && (
-            <p className="help-text error">
-              ⚠️ You are outside the classroom area. Please move closer.
-            </p>
+          {/* Distance Status Overlay */}
+          {distance !== null && selectedSession && (
+            <div className={`absolute bottom-4 left-4 right-4 p-4 rounded-xl backdrop-blur-md border shadow-lg z-[1000] flex justify-between items-center
+                  ${distance <= selectedSession.geofence_radius
+                ? 'bg-green-500/90 border-green-600 text-white'
+                : 'bg-red-500/90 border-red-600 text-white'}`}>
+              <div>
+                <p className="text-xs uppercase tracking-wider font-bold opacity-80">Distance to Class</p>
+                <p className="text-xl font-bold">{distance.toFixed(1)}m</p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs uppercase tracking-wider font-bold opacity-80">Allowed</p>
+                <p className="font-mono">{selectedSession.geofence_radius}m</p>
+              </div>
+            </div>
           )}
         </div>
       </div>
 
-      <style jsx>{`
-        .attendance-container {
-          min-height: 100vh;
-          padding: 20px;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-
-        .attendance-card {
-          max-width: 900px;
-          margin: 0 auto;
-          background: white;
-          border-radius: 12px;
-          padding: 30px;
-          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-        }
-
-        .attendance-card h1 {
-          color: #2c3e50;
-          margin-bottom: 10px;
-          font-size: 2rem;
-        }
-
-        .subtitle {
-          color: #7f8c8d;
-          margin-bottom: 30px;
-          font-size: 1.1rem;
-        }
-
-        .form-group {
-          margin-bottom: 20px;
-        }
-
-        .form-group label {
-          display: block;
-          margin-bottom: 8px;
-          color: #2c3e50;
-          font-weight: 600;
-        }
-
-        .form-select {
-          width: 100%;
-          padding: 12px;
-          border: 2px solid #e0e0e0;
-          border-radius: 8px;
-          font-size: 1rem;
-          transition: border-color 0.3s;
-        }
-
-        .form-select:focus {
-          outline: none;
-          border-color: #667eea;
-        }
-
-        .location-section {
-          margin: 30px 0;
-          padding: 20px;
-          background: #f8f9fa;
-          border-radius: 8px;
-        }
-
-        .location-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 15px;
-        }
-
-        .location-header h3 {
-          color: #2c3e50;
-          margin: 0;
-        }
-
-        .location-info {
-          margin-top: 15px;
-          padding: 15px;
-          background: white;
-          border-radius: 6px;
-        }
-
-        .location-info p {
-          margin: 8px 0;
-          color: #34495e;
-        }
-
-        .distance-info {
-          margin-top: 15px;
-          padding: 15px;
-          border-radius: 6px;
-          border: 2px solid;
-        }
-
-        .distance-info.within-radius {
-          background: #d4edda;
-          border-color: #27ae60;
-          color: #155724;
-        }
-
-        .distance-info.outside-radius {
-          background: #f8d7da;
-          border-color: #e74c3c;
-          color: #721c24;
-        }
-
-        .distance-info p {
-          margin: 5px 0;
-        }
-
-        .status-success {
-          font-weight: 600;
-          margin-top: 10px !important;
-        }
-
-        .status-error {
-          font-weight: 600;
-          margin-top: 10px !important;
-        }
-
-        .map-container {
-          margin: 20px 0;
-          border-radius: 8px;
-          overflow: hidden;
-          border: 2px solid #e0e0e0;
-        }
-
-        .info-box {
-          padding: 15px;
-          background: #fff3cd;
-          border: 1px solid #ffc107;
-          border-radius: 6px;
-          color: #856404;
-          margin-bottom: 20px;
-        }
-
-        .error-box {
-          padding: 15px;
-          background: #f8d7da;
-          border: 1px solid #e74c3c;
-          border-radius: 6px;
-          color: #721c24;
-          margin-top: 10px;
-        }
-
-        .btn-primary {
-          background: #667eea;
-          color: white;
-          border: none;
-          padding: 14px 28px;
-          border-radius: 8px;
-          font-size: 1.1rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.3s;
-        }
-
-        .btn-primary:hover:not(:disabled) {
-          background: #5568d3;
-          transform: translateY(-2px);
-          box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-primary:disabled {
-          background: #bdc3c7;
-          cursor: not-allowed;
-          transform: none;
-        }
-
-        .btn-secondary {
-          background: #3498db;
-          color: white;
-          border: none;
-          padding: 10px 20px;
-          border-radius: 6px;
-          font-size: 0.9rem;
-          cursor: pointer;
-          transition: all 0.3s;
-        }
-
-        .btn-secondary:hover:not(:disabled) {
-          background: #2980b9;
-        }
-
-        .btn-secondary:disabled {
-          background: #bdc3c7;
-          cursor: not-allowed;
-        }
-
-        .btn-large {
-          padding: 16px 32px;
-          font-size: 1.2rem;
-        }
-
-        .help-text {
-          margin-top: 15px;
-          padding: 12px;
-          background: #fff3cd;
-          border-radius: 6px;
-          color: #856404;
-          text-align: center;
-        }
-
-        .help-text.error {
-          background: #f8d7da;
-          color: #721c24;
-        }
-
-        @media (max-width: 768px) {
-          .attendance-card {
-            padding: 20px;
-          }
-
-          .location-header {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 10px;
-          }
-          
-          .map-container {
-            height: 300px !important;
-          }
-        }
-        
-        .scanner-modal {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0,0,0,0.8);
-          z-index: 2000;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 20px;
-        }
-
-        .scanner-container {
-          background: white;
-          padding: 20px;
-          border-radius: 12px;
-          width: 100%;
-          max-width: 500px;
-        }
-
-        .action-buttons {
-          display: flex;
-          gap: 15px;
-          margin-top: 20px;
-        }
-        
-        .action-buttons button {
-          flex: 1;
-          padding: 16px;
-          font-size: 1.1rem;
-        }
-      `}</style>
-    </>
+      {/* QR Scanner Modal */}
+      {showScanner && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl">
+            <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+              <h3 className="font-bold text-gray-900">Scan QR Code</h3>
+              <button onClick={() => setShowScanner(false)} className="text-gray-400 hover:text-gray-600">
+                ✕
+              </button>
+            </div>
+            <div className="p-4 bg-black">
+              <div id="reader" className="w-full rounded-lg overflow-hidden"></div>
+            </div>
+            <div className="p-4 bg-gray-50 text-center">
+              <p className="text-xs text-gray-500">Point your camera at the session QR code</p>
+            </div>
+          </div>
+        </div>
+      )}
+    </DashboardLayout>
   );
 }

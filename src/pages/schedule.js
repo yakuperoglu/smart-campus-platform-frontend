@@ -14,91 +14,34 @@ import { useState, useEffect, useContext, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import dynamic from 'next/dynamic';
-import navbar from '../components/Navbar';
+import AppNavbar from '../components/Navbar';
 import { AuthContext } from '../context/AuthContext';
 import api from '../config/api';
 import scheduleService from '../services/scheduleService';
 
 
 
-// Dynamic import for FullCalendar (SSR disabled)
-
-const FullCalendar = dynamic(
-
-    () => import('@fullcalendar/react'),
-
+// Dynamic import for ScheduleCalendar (SSR disabled)
+const ScheduleCalendar = dynamic(
+    () => import('../components/ScheduleCalendar'),
     { ssr: false, loading: () => <div style={styles.calendarLoading}>Loading calendar...</div> }
-
 );
 
-
-
 export default function SchedulePage() {
-
     const router = useRouter();
-
     const { user, loading: authLoading } = useContext(AuthContext);
 
-
-
     const [schedule, setSchedule] = useState([]);
-
-    const [calendarPlugins, setCalendarPlugins] = useState([]);
-
     const [loading, setLoading] = useState(true);
-
     const [error, setError] = useState(null);
-
     const [semester, setSemester] = useState('Fall');
-
     const [year, setYear] = useState(new Date().getFullYear());
-
     const [viewMode, setViewMode] = useState('week');
 
-
-
-    // Load FullCalendar plugins client-side
-
     useEffect(() => {
-
-        const loadPlugins = async () => {
-
-            try {
-
-                const [dayGrid, timeGrid, interaction] = await Promise.all([
-
-                    import('@fullcalendar/daygrid'),
-
-                    import('@fullcalendar/timegrid'),
-
-                    import('@fullcalendar/interaction')
-
-                ]);
-
-                setCalendarPlugins([dayGrid.default, timeGrid.default, interaction.default]);
-
-            } catch (err) {
-
-                console.error('Failed to load calendar plugins:', err);
-
-            }
-
-        };
-
-        loadPlugins();
-
-    }, []);
-
-
-
-    useEffect(() => {
-
         if (!authLoading) {
-
             fetchSchedule();
-
         }
-
     }, [user, authLoading, semester, year]);
 
 
@@ -447,7 +390,7 @@ export default function SchedulePage() {
 
             </Head>
 
-            <Navbar />
+            <AppNavbar />
 
 
 
@@ -626,93 +569,24 @@ export default function SchedulePage() {
                 <div style={styles.calendarCard}>
 
                     {loading ? (
-
                         <div style={styles.calendarLoading}>
-
                             <div style={styles.spinner}></div>
-
                             <p>Loading schedule...</p>
-
                         </div>
-
-                    ) : calendarPlugins.length > 0 ? (
-
-                        <FullCalendar
-
-                            plugins={calendarPlugins}
-
-                            initialView={viewMode === 'day' ? 'timeGridDay' : 'timeGridWeek'}
-
-                            headerToolbar={{
-
-                                left: 'prev,next today',
-
-                                center: 'title',
-
-                                right: 'timeGridWeek,timeGridDay'
-
-                            }}
-
-                            events={calendarEvents}
-
-                            slotMinTime="08:00:00"
-
-                            slotMaxTime="21:00:00"
-
-                            allDaySlot={false}
-
-                            weekends={false}
-
-                            height="auto"
-
-                            nowIndicator={true}
-
-                            slotDuration="00:30:00"
-
-                            eventClick={(info) => {
-
-                                const props = info.event.extendedProps;
-
-                                alert(
-
-                                    `${props.courseName || info.event.title}\n\n` +
-
-                                    `📍 Room: ${props.classroom}\n` +
-
-                                    `👨‍🏫 Instructor: ${props.instructor || 'TBA'}\n` +
-
-                                    `📚 Type: ${props.type}`
-
-                                );
-
-                            }}
-
-                            eventContent={(eventInfo) => (
-
-                                <div style={styles.eventContent}>
-
-                                    <div style={styles.eventTitle}>{eventInfo.event.title}</div>
-
-                                    <div style={styles.eventRoom}>
-
-                                        📍 {eventInfo.event.extendedProps.classroom}
-
-                                    </div>
-
-                                </div>
-
-                            )}
-
-                        />
-
                     ) : (
-
-                        <div style={styles.calendarLoading}>
-
-                            <p>Initializing calendar...</p>
-
-                        </div>
-
+                        <ScheduleCalendar
+                            viewMode={viewMode}
+                            events={calendarEvents}
+                            onEventClick={(info) => {
+                                const props = info.event.extendedProps;
+                                alert(
+                                    `${props.courseName || info.event.title}\n\n` +
+                                    `📍 Room: ${props.classroom}\n` +
+                                    `👨‍🏫 Instructor: ${props.instructor || 'TBA'}\n` +
+                                    `📚 Type: ${props.type}`
+                                );
+                            }}
+                        />
                     )}
 
                 </div>

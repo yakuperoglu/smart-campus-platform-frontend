@@ -23,15 +23,15 @@ export default function ExcuseManagement() {
     const [selectedRequest, setSelectedRequest] = useState(null);
     const [evalNotes, setEvalNotes] = useState('');
 
-    // Redirect if not authenticated or not faculty
+    // Redirect if not authenticated or not faculty/admin
     useEffect(() => {
-        if (!authLoading && (!user || user.role !== 'faculty')) {
+        if (!authLoading && (!user || (user.role !== 'faculty' && user.role !== 'admin'))) {
             router.push('/dashboard');
         }
     }, [authLoading, user, router]);
 
     const fetchRequests = async () => {
-        if (!user || user.role !== 'faculty') return;
+        if (!user || (user.role !== 'faculty' && user.role !== 'admin')) return;
 
         try {
             setLoading(true);
@@ -109,7 +109,7 @@ export default function ExcuseManagement() {
         );
     }
 
-    if (!user || user.role !== 'faculty') return null;
+    if (!user || (user.role !== 'faculty' && user.role !== 'admin')) return null;
 
     return (
         <>

@@ -1,7 +1,13 @@
 import axios from 'axios';
 
+// Determine API base URL from environment variables
+const API_BASE_URL =
+  (process.env.NEXT_PUBLIC_API_URL && process.env.NEXT_PUBLIC_API_URL.trim()) ||
+  (process.env.NEXT_PUBLIC_API_BASE_URL && process.env.NEXT_PUBLIC_API_BASE_URL.trim()) ||
+  'http://localhost:3000/api/v1';
+
 const api = axios.create({
-  baseURL: (process.env.NEXT_PUBLIC_API_URL && process.env.NEXT_PUBLIC_API_URL.trim()) || 'http://localhost:5000/api/v1',
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -40,7 +46,7 @@ api.interceptors.response.use(
           try {
             // Create a new axios instance without interceptors to avoid infinite loop
             const refreshAxios = axios.create({
-              baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000/api/v1',
+              baseURL: API_BASE_URL,
               headers: {
                 'Content-Type': 'application/json',
               },

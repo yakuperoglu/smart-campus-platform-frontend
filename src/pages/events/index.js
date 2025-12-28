@@ -1,624 +1,259 @@
 /**
- * Events List Page
+ * Events/Clubs Hub Page
  * 
- * Browse campus events with category filters and registration status.
- * Updated: Event display and registration improvements
+ * Discover campus events, filter by category, and buy tickets.
  */
 
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
-import Navbar from '../../components/Navbar';
-import { AuthContext } from '../../context/AuthContext';
+import DashboardLayout from '../../components/layout/DashboardLayout';
+import { useAuth } from '../../context/AuthContext';
 import api from '../../config/api';
+import FeedbackMessage from '../../components/FeedbackMessage';
+import { Search, Calendar, MapPin, Users, Ticket, Filter, ArrowRight, UserPlus, Heart } from 'lucide-react';
 
-const CATEGORIES = [
-    { value: '', label: 'All Events', icon: '🎉', color: '#8B5CF6', gradient: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)' },
-    { value: 'conference', label: 'Conference', icon: '🎤', color: '#3B82F6', gradient: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)' },
-    { value: 'workshop', label: 'Workshop', icon: '🛠️', color: '#F59E0B', gradient: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)' },
-    { value: 'seminar', label: 'Seminar', icon: '📚', color: '#10B981', gradient: 'linear-gradient(135deg, #10B981 0%, #059669 100%)' },
-    { value: 'sports', label: 'Sports', icon: '⚽', color: '#EF4444', gradient: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)' },
-    { value: 'social', label: 'Social', icon: '🎊', color: '#EC4899', gradient: 'linear-gradient(135deg, #EC4899 0%, #DB2777 100%)' },
-    { value: 'cultural', label: 'Cultural', icon: '🎭', color: '#8B5CF6', gradient: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)' }
-];
-
-export default function EventsListPage() {
+export default function EventsIndexPage() {
     const router = useRouter();
-    const { user, loading: authLoading } = useContext(AuthContext);
+    const { user, logout, loading: authLoading } = useAuth();
 
+    // State
     const [events, setEvents] = useState([]);
-    const [registrations, setRegistrations] = useState([]);
+    const [clubs, setClubs] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [category, setCategory] = useState('');
-    const [searchQuery, setSearchQuery] = useState('');
+    const [feedback, setFeedback] = useState({ type: '', message: '' });
+
+    // Filters
+    const [searchTerm, setSearchTerm] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState('');
+    const [activeTab, setActiveTab] = useState('events'); // 'events' or 'clubs'
 
     useEffect(() => {
-        fetchEvents();
-        if (user) {
-            fetchRegistrations();
+        if (!authLoading && !user) {
+            router.push('/login');
+            return;
         }
-    }, [user, authLoading, category]);
+        if (user) {
+            fetchData();
+        }
+    }, [user, authLoading]);
 
-    const fetchEvents = async () => {
+    const fetchData = async () => {
         try {
             setLoading(true);
-            let url = '/events?limit=50';
-            if (category) {
-                url += `&category=${category}`;
-            }
-            const response = await api.get(url);
-            setEvents(response.data.data || []);
+            const [eventsRes, clubsRes] = await Promise.all([
+                api.get('/events').catch(() => ({ data: { data: [] } })),
+                api.get('/clubs').catch(() => ({ data: { data: [] } }))
+            ]);
+
+            setEvents(eventsRes.data.data || []);
+            setClubs(clubsRes.data.data || []);
         } catch (err) {
             console.error('Error fetching events:', err);
-            setError('Failed to load events');
+            setFeedback({ type: 'error', message: 'Failed to load campus buzz' });
         } finally {
             setLoading(false);
         }
     };
 
-    const fetchRegistrations = async () => {
+    const handleJoinClub = async (clubId) => {
         try {
-            const response = await api.get('/events/registrations');
-            setRegistrations(response.data.data || []);
+            await api.post(`/clubs/${clubId}/join`);
+            setFeedback({ type: 'success', message: 'Joined club successfully!' });
+            // Ideally refetch or update local state
         } catch (err) {
-            console.error('Error fetching registrations:', err);
+            setFeedback({ type: 'error', message: err.response?.data?.message || 'Failed to join club' });
         }
     };
 
-    const isRegistered = (eventId) => {
-        return registrations.some(r => r.event_id === eventId && !['cancelled'].includes(r.status));
-    };
+    const filteredEvents = events.filter(e =>
+        e.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        e.description?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
-    const getRegistrationStatus = (eventId) => {
-        const reg = registrations.find(r => r.event_id === eventId);
-        return reg?.status;
-    };
-
-    const formatDate = (dateStr) => {
-        const date = new Date(dateStr);
-        return date.toLocaleDateString('en-US', {
-            weekday: 'short',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    };
-
-    const getCategoryData = (cat) => {
-        const found = CATEGORIES.find(c => c.value === cat);
-        return found || { icon: '🎉', label: cat, color: '#8B5CF6', gradient: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)' };
-    };
-
-    const getEventIcon = (event) => {
-        const title = (event.title || '').toLowerCase();
-        const description = (event.description || '').toLowerCase();
-        const text = `${title} ${description}`;
-        
-        // Sports - Tennis
-        if (text.includes('tennis')) return '🎾';
-        // Sports - Basketball
-        if (text.includes('basketball')) return '🏀';
-        // Sports - Volleyball
-        if (text.includes('volleyball')) return '🏐';
-        // Sports - Swimming
-        if (text.includes('swim')) return '🏊';
-        // Sports - Running/Marathon
-        if (text.includes('run') || text.includes('marathon')) return '🏃';
-        // Sports - Cycling
-        if (text.includes('cycl') || text.includes('bike')) return '🚴';
-        // Sports - Golf
-        if (text.includes('golf')) return '⛳';
-        // Sports - Boxing
-        if (text.includes('box')) return '🥊';
-        // Sports - Badminton
-        if (text.includes('badminton')) return '🏸';
-        // Sports - Table Tennis
-        if (text.includes('table tennis') || text.includes('ping pong')) return '🏓';
-        // Sports - Baseball
-        if (text.includes('baseball')) return '⚾';
-        // Sports - American Football
-        if (text.includes('american football') || text.includes('nfl')) return '🏈';
-        // Sports - Rugby
-        if (text.includes('rugby')) return '🏉';
-        // Sports - Cricket
-        if (text.includes('cricket')) return '🏏';
-        // Sports - Hockey
-        if (text.includes('hockey')) return '🏒';
-        // Sports - Ice Hockey
-        if (text.includes('ice hockey')) return '🥅';
-        // Sports - Wrestling
-        if (text.includes('wrestl')) return '🤼';
-        // Sports - Gymnastics
-        if (text.includes('gymnast')) return '🤸';
-        // Sports - Weightlifting
-        if (text.includes('weight') || text.includes('lift')) return '🏋️';
-        // Sports - Football/Soccer
-        if (text.includes('football') || text.includes('soccer')) return '⚽';
-        // Wellness - Yoga
-        if (text.includes('yoga') || text.includes('wellness')) return '🧘';
-        // Sports - Default (if category is sports but no match)
-        if (event.category === 'sports') return '⚽';
-        
-        // Return null to use category default icon
-        return null;
-    };
-
-    const filteredEvents = events.filter(event => {
-        if (!searchQuery) return true;
-        const query = searchQuery.toLowerCase();
-        return (
-            event.title?.toLowerCase().includes(query) ||
-            event.description?.toLowerCase().includes(query) ||
-            event.location?.toLowerCase().includes(query)
-        );
-    });
-
-    const upcomingEvents = filteredEvents.filter(e => new Date(e.date) >= new Date());
-    const pastEvents = filteredEvents.filter(e => new Date(e.date) < new Date());
-
-    if (loading && events.length === 0) {
-        return (
-            <>
-                <Head><title>Events - Smart Campus</title></Head>
-                <Navbar />
-                <div style={styles.loadingContainer}>
-                    <div style={styles.spinner}></div>
-                    <p>Loading events...</p>
-                </div>
-            </>
-        );
-    }
+    const filteredClubs = clubs.filter(c =>
+        c.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     return (
-        <>
+        <DashboardLayout user={user} onLogout={logout}>
             <Head>
-                <title>Campus Events - Smart Campus</title>
+                <title>Campus Life - Smart Campus</title>
             </Head>
-            <Navbar />
 
-            <div style={styles.container}>
-                {/* Hero Section */}
-                <div style={styles.hero}>
-                    <h1 style={styles.heroTitle}>🎉 Campus Events</h1>
-                    <p style={styles.heroSubtitle}>Discover workshops, conferences, and social gatherings</p>
+            <FeedbackMessage
+                type={feedback.type}
+                message={feedback.message}
+                onClose={() => setFeedback({ type: '', message: '' })}
+            />
 
-                    {/* Search */}
-                    <div style={styles.searchBox}>
-                        <span style={styles.searchIcon}>🔍</span>
+            {/* Header with Search */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 animate-in slide-in-from-bottom-2 duration-500">
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Campus Life</h1>
+                    <p className="text-gray-500 mt-1">Discover events, clubs, and activities around you.</p>
+                </div>
+
+                <div className="mt-4 md:mt-0 flex gap-3 w-full md:w-auto">
+                    <div className="relative flex-grow md:flex-grow-0">
+                        <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <Search className="h-4 w-4 text-gray-400" />
+                        </span>
                         <input
                             type="text"
-                            placeholder="Search events..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            style={styles.searchInput}
+                            placeholder="Search..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="block w-full md:w-64 pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-slate-900 focus:border-slate-900 shadow-sm"
                         />
                     </div>
-                </div>
-
-                {/* Category Filters */}
-                <div style={styles.categoryScroll}>
-                    {CATEGORIES.map(cat => (
-                        <button
-                            key={cat.value}
-                            onClick={() => setCategory(cat.value)}
-                            style={category === cat.value ? styles.categoryBtnActive : styles.categoryBtn}
-                        >
-                            <span style={styles.categoryIcon}>{cat.icon}</span>
-                            <span>{cat.label}</span>
-                        </button>
-                    ))}
-                </div>
-
-                {/* My Registrations Link */}
-                {user && registrations.length > 0 && (
-                    <Link href="/events/my-tickets" style={styles.myTicketsLink}>
-                        🎫 My Tickets ({registrations.filter(r => r.status !== 'cancelled').length})
+                    <Link href="/events/my-tickets" className="flex items-center gap-2 bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm whitespace-nowrap">
+                        <Ticket className="h-4 w-4" /> My Tickets
                     </Link>
-                )}
+                </div>
+            </div>
 
-                {/* Error */}
-                {error && (
-                    <div style={styles.errorAlert}>
-                        {error}
-                        <button onClick={() => setError(null)} style={styles.alertClose}>×</button>
-                    </div>
-                )}
+            {/* Tabs */}
+            <div className="flex border-b border-gray-200 mb-8 overflow-x-auto">
+                <button
+                    onClick={() => setActiveTab('events')}
+                    className={`pb-4 px-6 text-sm font-medium transition-colors relative whitespace-nowrap
+                        ${activeTab === 'events' ? 'text-slate-900' : 'text-gray-500 hover:text-gray-800'}`}
+                >
+                    Upcoming Events
+                    {activeTab === 'events' && (
+                        <span className="absolute bottom-0 left-0 w-full h-0.5 bg-slate-900 rounded-t-full"></span>
+                    )}
+                </button>
+                <button
+                    onClick={() => setActiveTab('clubs')}
+                    className={`pb-4 px-6 text-sm font-medium transition-colors relative whitespace-nowrap
+                        ${activeTab === 'clubs' ? 'text-slate-900' : 'text-gray-500 hover:text-gray-800'}`}
+                >
+                    Student Clubs
+                    {activeTab === 'clubs' && (
+                        <span className="absolute bottom-0 left-0 w-full h-0.5 bg-slate-900 rounded-t-full"></span>
+                    )}
+                </button>
+            </div>
 
-                {/* Upcoming Events */}
-                <section style={styles.section}>
-                    <h2 style={styles.sectionTitle}>
-                        Upcoming Events
-                        <span style={styles.sectionCount}>{upcomingEvents.length}</span>
-                    </h2>
+            {loading ? (
+                <div className="flex flex-col items-center justify-center py-20">
+                    <div className="w-10 h-10 border-4 border-gray-200 border-t-slate-900 rounded-full animate-spin mb-4"></div>
+                    <p className="text-gray-500">Loading campus buzz...</p>
+                </div>
+            ) : (
+                <div className="animate-in slide-in-from-bottom-4 duration-500">
 
-                    {upcomingEvents.length === 0 ? (
-                        <div style={styles.emptyState}>
-                            <span style={styles.emptyIcon}>📅</span>
-                            <p>No upcoming events found</p>
-                        </div>
-                    ) : (
-                        <div style={styles.eventGrid}>
-                            {upcomingEvents.map(event => {
-                                const catData = getCategoryData(event.category);
-                                const eventIcon = getEventIcon(event);
-                                const displayIcon = eventIcon || catData.icon;
-                                const registered = isRegistered(event.id);
-                                const regStatus = getRegistrationStatus(event.id);
-                                const spotsLeft = event.capacity - (event.registered_count || 0);
-                                const isFull = spotsLeft <= 0;
-
-                                return (
-                                    <Link
-                                        href={`/events/${event.id}`}
-                                        key={event.id}
-                                        style={styles.eventCard}
-                                    >
-                                        {/* Image/Header */}
-                                        <div style={{
-                                            ...styles.eventImage,
-                                            backgroundImage: event.image_url ? `url(${event.image_url})` : catData.gradient,
-                                            backgroundColor: event.image_url ? 'transparent' : catData.color
-                                        }}>
-                                            {!event.image_url && (
-                                                <span style={styles.eventImageIcon}>{displayIcon}</span>
+                    {/* Events Grid */}
+                    {activeTab === 'events' && (
+                        filteredEvents.length === 0 ? (
+                            <div className="text-center py-16 bg-white rounded-xl border border-dashed border-gray-300">
+                                <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                                <h3 className="text-lg font-medium text-gray-900">No events found</h3>
+                                <p className="text-gray-500">Try adjusting your search terms.</p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {filteredEvents.map(event => (
+                                    <Link href={`/events/${event.id}`} key={event.id} className="group block bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all h-full flex flex-col">
+                                        <div className="h-48 bg-slate-100 relative overflow-hidden">
+                                            {event.poster_url ? (
+                                                <img src={event.poster_url} alt={event.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600">
+                                                    <Calendar className="h-16 w-16 text-white/20" />
+                                                </div>
                                             )}
 
-                                            {/* Badges */}
-                                            <div style={styles.badgeRow}>
-                                                {event.is_paid && (
-                                                    <span style={styles.priceBadge}>{event.price} TRY</span>
-                                                )}
-                                                {registered && (
-                                                    <span style={{
-                                                        ...styles.registeredBadge,
-                                                        backgroundColor: regStatus === 'waitlisted' ? '#F59E0B' : '#10B981'
-                                                    }}>
-                                                        {regStatus === 'waitlisted' ? '⏳ Waitlisted' : '✓ Registered'}
-                                                    </span>
-                                                )}
+                                            {event.price === 0 && (
+                                                <span className="absolute top-3 right-3 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded shadow-sm">
+                                                    FREE
+                                                </span>
+                                            )}
+
+                                            <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/80 to-transparent p-4 pt-10">
+                                                <p className="text-white text-xs font-bold uppercase tracking-wide flex items-center gap-1">
+                                                    <Calendar className="h-3 w-3" />
+                                                    {new Date(event.date).toLocaleDateString()} • {event.time}
+                                                </p>
                                             </div>
                                         </div>
-
-                                        {/* Content */}
-                                        <div style={styles.eventContent}>
-                                            <div style={styles.eventMeta}>
-                                                <span style={styles.eventCategory}>{catData.icon} {catData.label}</span>
-                                                <span style={styles.eventDate}>{formatDate(event.date)}</span>
+                                        <div className="p-5 flex flex-col flex-1">
+                                            <h3 className="font-bold text-gray-900 text-lg mb-2 group-hover:text-blue-600 transition-colors line-clamp-1">{event.title}</h3>
+                                            <div className="flex items-center gap-2 text-sm text-gray-500 mb-3">
+                                                <MapPin className="h-4 w-4" />
+                                                <span className="truncate">{event.location}</span>
                                             </div>
-
-                                            <h3 style={styles.eventTitle}>{event.title}</h3>
-
-                                            <p style={styles.eventDesc}>
-                                                {event.description?.substring(0, 100)}
-                                                {event.description?.length > 100 ? '...' : ''}
+                                            <p className="text-sm text-gray-600 line-clamp-2 mb-4 flex-1">
+                                                {event.description}
                                             </p>
-
-                                            <div style={styles.eventFooter}>
-                                                <span style={styles.eventLocation}>📍 {event.location || 'TBA'}</span>
-                                                <span style={{
-                                                    ...styles.spotsLeft,
-                                                    color: isFull ? '#EF4444' : '#10B981'
-                                                }}>
-                                                    {isFull ? 'Waitlist' : `${spotsLeft} spots`}
+                                            <div className="pt-4 border-t border-gray-100 flex justify-between items-center mt-auto">
+                                                <div className="text-sm font-semibold text-gray-900">
+                                                    {event.price > 0 ? `${event.price} TRY` : 'Free Entry'}
+                                                </div>
+                                                <span className="text-xs font-medium text-blue-600 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                                                    Details <ArrowRight className="h-3 w-3" />
                                                 </span>
                                             </div>
                                         </div>
                                     </Link>
-                                );
-                            })}
-                        </div>
+                                ))}
+                            </div>
+                        )
                     )}
-                </section>
 
-                {/* Past Events */}
-                {pastEvents.length > 0 && (
-                    <section style={styles.section}>
-                        <h2 style={styles.sectionTitle}>
-                            Past Events
-                            <span style={styles.sectionCount}>{pastEvents.length}</span>
-                        </h2>
-                        <div style={styles.eventGrid}>
-                            {pastEvents.slice(0, 6).map(event => {
-                                const catData = getCategoryData(event.category);
-                                const eventIcon = getEventIcon(event);
-                                const displayIcon = eventIcon || catData.icon;
-                                return (
-                                    <div key={event.id} style={{ ...styles.eventCard, opacity: 0.7 }}>
-                                        <div style={{ 
-                                            ...styles.eventImage, 
-                                            backgroundImage: event.image_url ? `url(${event.image_url})` : catData.gradient,
-                                            backgroundColor: event.image_url ? 'transparent' : catData.color,
-                                            opacity: 0.6
-                                        }}>
-                                            {!event.image_url && (
-                                                <span style={styles.eventImageIcon}>{displayIcon}</span>
-                                            )}
-                                            <span style={styles.pastBadge}>Ended</span>
+                    {/* Clubs Grid */}
+                    {activeTab === 'clubs' && (
+                        filteredClubs.length === 0 ? (
+                            <div className="text-center py-16 bg-white rounded-xl border border-dashed border-gray-300">
+                                <Users className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                                <h3 className="text-lg font-medium text-gray-900">No clubs found</h3>
+                                <p className="text-gray-500">Try adjusting your search terms.</p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {filteredClubs.map(club => (
+                                    <div key={club.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+                                        <div className="h-32 bg-slate-900 relative">
+                                            <div className="absolute inset-0 bg-pattern opacity-10"></div>
+                                            <div className="absolute -bottom-8 left-6">
+                                                <div className="w-16 h-16 rounded-xl bg-white p-1 shadow-md">
+                                                    {club.logo_url ? (
+                                                        <img src={club.logo_url} alt="Logo" className="w-full h-full object-cover rounded-lg" />
+                                                    ) : (
+                                                        <div className="w-full h-full bg-slate-100 rounded-lg flex items-center justify-center text-slate-400">
+                                                            <Users className="h-8 w-8" />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div style={styles.eventContent}>
-                                            <span style={styles.eventCategory}>{catData.label}</span>
-                                            <h3 style={styles.eventTitle}>{event.title}</h3>
-                                            <span style={styles.eventDate}>{formatDate(event.date)}</span>
+                                        <div className="pt-10 px-6 pb-6">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <h3 className="font-bold text-gray-900 text-lg">{club.name}</h3>
+                                                {/* <button className="text-gray-400 hover:text-red-500 transition-colors">
+                                                    <Heart className="h-5 w-5" />
+                                                </button> */}
+                                            </div>
+                                            <p className="text-sm text-gray-500 mb-4 line-clamp-2">{club.description || 'Join us to connect with like-minded students and participate in exciting activities!'}</p>
+
+                                            <button
+                                                onClick={() => handleJoinClub(club.id)}
+                                                className="w-full py-2 bg-slate-50 hover:bg-slate-100 text-slate-800 text-sm font-semibold rounded-lg border border-slate-200 transition-colors flex items-center justify-center gap-2"
+                                            >
+                                                <UserPlus className="h-4 w-4" /> Join Club
+                                            </button>
                                         </div>
                                     </div>
-                                );
-                            })}
-                        </div>
-                    </section>
-                )}
-            </div>
+                                ))}
+                            </div>
+                        )
+                    )}
 
-            <style jsx global>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
-        </>
+                </div>
+            )}
+        </DashboardLayout>
     );
 }
-
-const styles = {
-    container: {
-        maxWidth: '1200px',
-        margin: '0 auto',
-        padding: '0 24px 40px',
-        fontFamily: 'system-ui, -apple-system, sans-serif'
-    },
-    loadingContainer: {
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '60vh',
-        color: '#6B7280'
-    },
-    spinner: {
-        width: '40px',
-        height: '40px',
-        border: '3px solid #E5E7EB',
-        borderTop: '3px solid #8B5CF6',
-        borderRadius: '50%',
-        animation: 'spin 1s linear infinite',
-        marginBottom: '16px'
-    },
-    hero: {
-        textAlign: 'center',
-        padding: '40px 0 32px'
-    },
-    heroTitle: {
-        fontSize: '36px',
-        fontWeight: '800',
-        color: '#111827',
-        marginBottom: '8px'
-    },
-    heroSubtitle: {
-        fontSize: '18px',
-        color: '#6B7280',
-        marginBottom: '24px'
-    },
-    searchBox: {
-        display: 'flex',
-        alignItems: 'center',
-        maxWidth: '400px',
-        margin: '0 auto',
-        backgroundColor: 'white',
-        borderRadius: '12px',
-        padding: '12px 16px',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
-    },
-    searchIcon: {
-        fontSize: '18px',
-        marginRight: '12px',
-        color: '#9CA3AF'
-    },
-    searchInput: {
-        flex: 1,
-        border: 'none',
-        outline: 'none',
-        fontSize: '16px',
-        backgroundColor: 'transparent'
-    },
-    categoryScroll: {
-        display: 'flex',
-        gap: '8px',
-        overflowX: 'auto',
-        padding: '8px 0 24px',
-        marginBottom: '8px'
-    },
-    categoryBtn: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '6px',
-        padding: '10px 16px',
-        backgroundColor: 'white',
-        border: '1px solid #E5E7EB',
-        borderRadius: '20px',
-        fontSize: '14px',
-        fontWeight: '500',
-        color: '#374151',
-        cursor: 'pointer',
-        whiteSpace: 'nowrap'
-    },
-    categoryBtnActive: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '6px',
-        padding: '10px 16px',
-        backgroundColor: '#8B5CF6',
-        border: '1px solid #8B5CF6',
-        borderRadius: '20px',
-        fontSize: '14px',
-        fontWeight: '500',
-        color: 'white',
-        cursor: 'pointer',
-        whiteSpace: 'nowrap'
-    },
-    categoryIcon: {
-        fontSize: '16px'
-    },
-    myTicketsLink: {
-        display: 'inline-flex',
-        alignItems: 'center',
-        padding: '10px 20px',
-        backgroundColor: '#8B5CF6',
-        color: 'white',
-        borderRadius: '10px',
-        textDecoration: 'none',
-        fontWeight: '600',
-        fontSize: '14px',
-        marginBottom: '24px'
-    },
-    errorAlert: {
-        backgroundColor: '#FEF2F2',
-        color: '#DC2626',
-        padding: '12px 16px',
-        borderRadius: '10px',
-        marginBottom: '16px',
-        display: 'flex',
-        justifyContent: 'space-between'
-    },
-    alertClose: {
-        background: 'none',
-        border: 'none',
-        fontSize: '18px',
-        cursor: 'pointer'
-    },
-    section: {
-        marginBottom: '40px'
-    },
-    sectionTitle: {
-        fontSize: '22px',
-        fontWeight: '700',
-        color: '#111827',
-        marginBottom: '20px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px'
-    },
-    sectionCount: {
-        fontSize: '14px',
-        fontWeight: '500',
-        padding: '4px 10px',
-        backgroundColor: '#F3F4F6',
-        borderRadius: '12px',
-        color: '#6B7280'
-    },
-    emptyState: {
-        textAlign: 'center',
-        padding: '60px 20px',
-        color: '#6B7280'
-    },
-    emptyIcon: {
-        fontSize: '48px',
-        display: 'block',
-        marginBottom: '16px'
-    },
-    eventGrid: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-        gap: '24px'
-    },
-    eventCard: {
-        backgroundColor: 'white',
-        borderRadius: '16px',
-        overflow: 'hidden',
-        boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
-        textDecoration: 'none',
-        display: 'block',
-        transition: 'transform 0.2s, box-shadow 0.2s'
-    },
-    eventImage: {
-        height: '160px',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        position: 'relative'
-    },
-    eventImageIcon: {
-        fontSize: '48px'
-    },
-    badgeRow: {
-        position: 'absolute',
-        top: '12px',
-        left: '12px',
-        right: '12px',
-        display: 'flex',
-        justifyContent: 'space-between'
-    },
-    priceBadge: {
-        padding: '6px 12px',
-        backgroundColor: 'rgba(0,0,0,0.7)',
-        color: 'white',
-        borderRadius: '6px',
-        fontSize: '13px',
-        fontWeight: '600'
-    },
-    registeredBadge: {
-        padding: '6px 12px',
-        color: 'white',
-        borderRadius: '6px',
-        fontSize: '12px',
-        fontWeight: '600'
-    },
-    pastBadge: {
-        position: 'absolute',
-        top: '12px',
-        right: '12px',
-        padding: '6px 12px',
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        color: 'white',
-        borderRadius: '6px',
-        fontSize: '12px'
-    },
-    eventContent: {
-        padding: '20px'
-    },
-    eventMeta: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '8px'
-    },
-    eventCategory: {
-        fontSize: '12px',
-        fontWeight: '600',
-        color: '#8B5CF6',
-        textTransform: 'uppercase'
-    },
-    eventDate: {
-        fontSize: '12px',
-        color: '#6B7280'
-    },
-    eventTitle: {
-        fontSize: '18px',
-        fontWeight: '600',
-        color: '#111827',
-        marginBottom: '8px',
-        lineHeight: '1.3'
-    },
-    eventDesc: {
-        fontSize: '14px',
-        color: '#6B7280',
-        lineHeight: '1.5',
-        marginBottom: '16px'
-    },
-    eventFooter: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-    },
-    eventLocation: {
-        fontSize: '13px',
-        color: '#6B7280'
-    },
-    spotsLeft: {
-        fontSize: '13px',
-        fontWeight: '600'
-    }
-};
