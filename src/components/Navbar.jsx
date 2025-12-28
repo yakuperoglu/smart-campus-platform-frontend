@@ -34,219 +34,224 @@ const Navbar = ({ userData: propUserData }) => {
                 <img
                     src={getImageUrl(userData.profile_picture_url)}
                     alt="Profile"
-                    className="nav-avatar"
+                    className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm"
                 />
             );
         }
         return (
-            <div className="nav-avatar-placeholder">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-sm">
                 {userData?.email?.charAt(0).toUpperCase()}
             </div>
         );
     };
 
     return (
-        <nav className="dashboard-nav">
-            <div className="nav-brand">
+        <nav className="sticky top-0 z-50 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center shadow-sm">
+            <div className="flex items-center gap-4">
                 <Link href="/dashboard" style={{ textDecoration: 'none' }} prefetch={false}>
-                    <h1>🎓 Smart Campus</h1>
+                    <h1 className="text-xl font-bold text-gray-900 tracking-tight">🎓 Smart Campus</h1>
                 </Link>
             </div>
-            <div className="nav-actions">
+            <div className="flex items-center gap-4">
                 {userData && <NotificationsPopover />}
 
-                <div className="profile-menu-container">
+                <div className="relative">
                     <button
-                        className="profile-menu-button"
+                        className="flex items-center gap-3 px-3 py-2 bg-white border border-gray-200 rounded-lg hover:border-gray-400 transition-colors focus:outline-none"
                         onClick={() => setShowProfileMenu(!showProfileMenu)}
                     >
                         {renderAvatar()}
-                        <span className="profile-name">
-                            {userData?.first_name || userData?.email?.split('@')[0] || userData?.email || 'User'}
-                        </span>
-                        <span className="dropdown-arrow">▼</span>
+                        <div className="text-left hidden md:block">
+                            <span className="block text-sm font-semibold text-gray-900 leading-tight">
+                                {userData?.first_name || userData?.email?.split('@')[0] || userData?.email || 'User'}
+                            </span>
+                        </div>
+                        <span className="text-gray-400 text-xs">▼</span>
                     </button>
 
                     {showProfileMenu && (
-                        <div className="profile-dropdown">
-                            <div className="dropdown-header">
-                                <p className="dropdown-email">{userData?.email}</p>
-                                <span className="dropdown-role">{userData?.role?.toUpperCase()}</span>
+                        <div className="absolute top-full right-0 mt-2 w-64 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50 animate-in fade-in zoom-in-95 duration-200">
+                            <div className="px-4 py-3 border-b border-gray-100">
+                                <p className="text-sm font-medium text-gray-900 truncate">{userData?.email}</p>
+                                <span className="inline-block mt-1 px-2 py-0.5 bg-gray-100 text-xs font-semibold text-gray-600 rounded uppercase tracking-wider">
+                                    {userData?.role}
+                                </span>
                             </div>
-                            <div className="dropdown-divider"></div>
 
-                            {/* Admin Panel Link */}
-                            {userData?.role === 'admin' && (
-                                <>
-                                    <button
-                                        className="dropdown-item"
-                                        onClick={() => {
-                                            setShowProfileMenu(false);
-                                            router.push('/admin/courses');
-                                        }}
-                                    >
-                                        <span className="item-icon">⚙️</span>
-                                        Admin Panel
-                                    </button>
-                                    <button
-                                        className="dropdown-item"
-                                        onClick={() => {
-                                            setShowProfileMenu(false);
-                                            router.push('/admin/scheduling');
-                                        }}
-                                    >
-                                        <span className="item-icon">🗓️</span>
-                                        Schedule Generator
-                                    </button>
-                                    <div className="dropdown-divider"></div>
-                                </>
-                            )}
+                            <div className="py-1">
+                                {/* Admin Panel Link */}
+                                {userData?.role === 'admin' && (
+                                    <>
+                                        <button
+                                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                            onClick={() => {
+                                                setShowProfileMenu(false);
+                                                router.push('/admin/courses');
+                                            }}
+                                        >
+                                            <span className="text-lg">⚙️</span>
+                                            Admin Panel
+                                        </button>
+                                        <button
+                                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                            onClick={() => {
+                                                setShowProfileMenu(false);
+                                                router.push('/admin/scheduling');
+                                            }}
+                                        >
+                                            <span className="text-lg">🗓️</span>
+                                            Schedule Generator
+                                        </button>
+                                        <div className="h-px bg-gray-100 my-1"></div>
+                                    </>
+                                )}
 
-                            {/* Staff/Admin QR Scanner */}
-                            {['admin', 'staff', 'faculty'].includes(userData?.role) && (
-                                <>
-                                    <button
-                                        className="dropdown-item"
-                                        onClick={() => {
-                                            setShowProfileMenu(false);
-                                            router.push('/staff/scan');
-                                        }}
-                                    >
-                                        <span className="item-icon">📱</span>
-                                        QR Scanner
-                                    </button>
-                                    <div className="dropdown-divider"></div>
-                                </>
-                            )}
+                                {/* Staff/Admin QR Scanner */}
+                                {['admin', 'staff', 'faculty'].includes(userData?.role) && (
+                                    <>
+                                        <button
+                                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                            onClick={() => {
+                                                setShowProfileMenu(false);
+                                                router.push('/staff/scan');
+                                            }}
+                                        >
+                                            <span className="text-lg">📱</span>
+                                            QR Scanner
+                                        </button>
+                                        <div className="h-px bg-gray-100 my-1"></div>
+                                    </>
+                                )}
 
-                            {/* Faculty Links */}
-                            {userData?.role === 'faculty' && (
-                                <>
-                                    <button
-                                        className="dropdown-item"
-                                        onClick={() => {
-                                            setShowProfileMenu(false);
-                                            router.push('/attendance-open');
-                                        }}
-                                    >
-                                        <span className="item-icon">📋</span>
-                                        My Sessions
-                                    </button>
-                                    <button
-                                        className="dropdown-item"
-                                        onClick={() => {
-                                            setShowProfileMenu(false);
-                                            router.push('/excuse-management');
-                                        }}
-                                    >
-                                        <span className="item-icon">📩</span>
-                                        Excuse Requests
-                                    </button>
-                                    <div className="dropdown-divider"></div>
-                                </>
-                            )}
+                                {/* Faculty Links */}
+                                {userData?.role === 'faculty' && (
+                                    <>
+                                        <button
+                                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                            onClick={() => {
+                                                setShowProfileMenu(false);
+                                                router.push('/attendance-open');
+                                            }}
+                                        >
+                                            <span className="text-lg">📋</span>
+                                            My Sessions
+                                        </button>
+                                        <button
+                                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                            onClick={() => {
+                                                setShowProfileMenu(false);
+                                                router.push('/excuse-management');
+                                            }}
+                                        >
+                                            <span className="text-lg">📩</span>
+                                            Excuse Requests
+                                        </button>
+                                        <div className="h-px bg-gray-100 my-1"></div>
+                                    </>
+                                )}
 
-                            {/* Student Links */}
-                            {userData?.role === 'student' && (
-                                <>
-                                    <button
-                                        className="dropdown-item"
-                                        onClick={() => {
-                                            setShowProfileMenu(false);
-                                            router.push('/my-courses');
-                                        }}
-                                    >
-                                        <span className="item-icon">📚</span>
-                                        My Courses
-                                    </button>
-                                    <button
-                                        className="dropdown-item"
-                                        onClick={() => {
-                                            setShowProfileMenu(false);
-                                            router.push('/my-grades');
-                                        }}
-                                    >
-                                        <span className="item-icon">📊</span>
-                                        Grades & Transcript
-                                    </button>
-                                    <button
-                                        className="dropdown-item"
-                                        onClick={() => {
-                                            setShowProfileMenu(false);
-                                            router.push('/my-excuses');
-                                        }}
-                                    >
-                                        <span className="item-icon">📝</span>
-                                        My Excuses
-                                    </button>
+                                {/* Student Links */}
+                                {userData?.role === 'student' && (
+                                    <>
+                                        <button
+                                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                            onClick={() => {
+                                                setShowProfileMenu(false);
+                                                router.push('/my-courses');
+                                            }}
+                                        >
+                                            <span className="text-lg">📚</span>
+                                            My Courses
+                                        </button>
+                                        <button
+                                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                            onClick={() => {
+                                                setShowProfileMenu(false);
+                                                router.push('/my-grades');
+                                            }}
+                                        >
+                                            <span className="text-lg">📊</span>
+                                            Grades & Transcript
+                                        </button>
+                                        <button
+                                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                            onClick={() => {
+                                                setShowProfileMenu(false);
+                                                router.push('/my-excuses');
+                                            }}
+                                        >
+                                            <span className="text-lg">📝</span>
+                                            My Excuses
+                                        </button>
 
-                                    <div className="dropdown-divider"></div>
-                                </>
-                            )}
+                                        <div className="h-px bg-gray-100 my-1"></div>
+                                    </>
+                                )}
 
-                            <button
-                                className="dropdown-item"
-                                onClick={() => {
-                                    setShowProfileMenu(false);
-                                    router.push('/wallet');
-                                }}
-                            >
-                                <span className="item-icon">💳</span>
-                                My Wallet
-                            </button>
-                            <button
-                                className="dropdown-item"
-                                onClick={() => {
-                                    setShowProfileMenu(false);
-                                    router.push('/meals');
-                                }}
-                            >
-                                <span className="item-icon">🍽️</span>
-                                Meals
-                            </button>
-                            <button
-                                className="dropdown-item"
-                                onClick={() => {
-                                    setShowProfileMenu(false);
-                                    router.push('/events');
-                                }}
-                            >
-                                <span className="item-icon">🎉</span>
-                                Events
-                            </button>
-                            <button
-                                className="dropdown-item"
-                                onClick={() => {
-                                    setShowProfileMenu(false);
-                                    router.push('/schedule');
-                                }}
-                            >
-                                <span className="item-icon">📅</span>
-                                Schedule
-                            </button>
-                            <div className="dropdown-divider"></div>
+                                <button
+                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                    onClick={() => {
+                                        setShowProfileMenu(false);
+                                        router.push('/wallet');
+                                    }}
+                                >
+                                    <span className="text-lg">💳</span>
+                                    My Wallet
+                                </button>
+                                <button
+                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                    onClick={() => {
+                                        setShowProfileMenu(false);
+                                        router.push('/meals');
+                                    }}
+                                >
+                                    <span className="text-lg">🍽️</span>
+                                    Meals
+                                </button>
+                                <button
+                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                    onClick={() => {
+                                        setShowProfileMenu(false);
+                                        router.push('/events');
+                                    }}
+                                >
+                                    <span className="text-lg">🎉</span>
+                                    Events
+                                </button>
+                                <button
+                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                    onClick={() => {
+                                        setShowProfileMenu(false);
+                                        router.push('/schedule');
+                                    }}
+                                >
+                                    <span className="text-lg">📅</span>
+                                    Schedule
+                                </button>
+                                <div className="h-px bg-gray-100 my-1"></div>
 
-                            <button
-                                className="dropdown-item"
-                                onClick={() => {
-                                    setShowProfileMenu(false);
-                                    router.push('/profile');
-                                }}
-                            >
-                                <span className="item-icon">👤</span>
-                                My Profile
-                            </button>
-                            <div className="dropdown-divider"></div>
-                            <button
-                                className="dropdown-item logout-item"
-                                onClick={() => {
-                                    setShowProfileMenu(false);
-                                    handleLogout();
-                                }}
-                            >
-                                <span className="item-icon">🚪</span>
-                                Logout
-                            </button>
+                                <button
+                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                    onClick={() => {
+                                        setShowProfileMenu(false);
+                                        router.push('/profile');
+                                    }}
+                                >
+                                    <span className="text-lg">👤</span>
+                                    My Profile
+                                </button>
+                                <div className="h-px bg-gray-100 my-1"></div>
+                                <button
+                                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 font-medium"
+                                    onClick={() => {
+                                        setShowProfileMenu(false);
+                                        handleLogout();
+                                    }}
+                                >
+                                    <span className="text-lg">🚪</span>
+                                    Logout
+                                </button>
+                            </div>
                         </div>
                     )}
                 </div>
