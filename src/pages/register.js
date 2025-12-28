@@ -171,242 +171,201 @@ export default function Register() {
         <title>Register - Smart Campus Platform</title>
       </Head>
 
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 py-12">
-        <div className="max-w-xl w-full animate-in fade-in zoom-in-95 duration-500">
-          <div className="bg-white rounded-2xl shadow-xl p-8 space-y-6 border border-gray-100">
-            <Link href="/" className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-500 transition-colors mb-2">
-              ← Back to Home
-            </Link>
+      <div className="auth-container">
+        <div className="auth-card register-card" style={{ position: 'relative' }}>
+          <Link href="/" style={{
+            position: 'absolute',
+            top: '15px',
+            left: '15px',
+            fontSize: '1.5rem',
+            color: '#667eea',
+            textDecoration: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '5px',
+            transition: 'transform 0.2s ease'
+          }}>
+            ← <span style={{ fontSize: '0.9rem' }}>Back</span>
+          </Link>
+          <div className="auth-header" style={{ marginTop: '20px' }}>
+            <h1>🎓 Smart Campus</h1>
+            <h2>Create Account</h2>
+            <p>Join the Smart Campus community</p>
+          </div>
 
-            <div className="text-center">
-              <h1 className="text-3xl font-bold text-gray-900 tracking-tight">🎓 Smart Campus</h1>
-              <h2 className="mt-2 text-xl font-semibold text-gray-900">Create Account</h2>
-              <p className="mt-1 text-sm text-gray-500">Join the Smart Campus community</p>
+          {error && (
+            <div className="error-message">
+              <span>❌</span> {error}
+            </div>
+          )}
+
+          {success && (
+            <div className="success-message">
+              <span>✅</span> {success}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="auth-form">
+            <div className="form-group">
+              <label htmlFor="email">Email Address</label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="your.email@smartcampus.edu"
+                required
+                autoFocus
+              />
             </div>
 
-            {error && (
-              <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-md animate-in slide-in-from-top-2 duration-300">
-                <div className="flex">
-                  <div className="flex-shrink-0">❌</div>
-                  <div className="ml-3">
-                    <p className="text-sm text-red-700">{error}</p>
-                  </div>
+            <div className="form-group">
+              <label htmlFor="password">Password</label>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                placeholder="Create a strong password"
+                required
+              />
+              {formData.password && (
+                <div className="password-requirements">
+                  <small style={{ color: passwordErrors.length ? '#27ae60' : '#e74c3c' }}>
+                    {passwordErrors.length ? '✓' : '✗'} At least 8 characters
+                  </small>
+                  <small style={{ color: passwordErrors.uppercase ? '#27ae60' : '#e74c3c' }}>
+                    {passwordErrors.uppercase ? '✓' : '✗'} One uppercase letter (A-Z)
+                  </small>
+                  <small style={{ color: passwordErrors.lowercase ? '#27ae60' : '#e74c3c' }}>
+                    {passwordErrors.lowercase ? '✓' : '✗'} One lowercase letter (a-z)
+                  </small>
+                  <small style={{ color: passwordErrors.number ? '#27ae60' : '#e74c3c' }}>
+                    {passwordErrors.number ? '✓' : '✗'} One number (0-9)
+                  </small>
+                  <small style={{ color: passwordErrors.special ? '#27ae60' : '#e74c3c' }}>
+                    {passwordErrors.special ? '✓' : '✗'} One special character (@$!%*?&#)
+                  </small>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
-            {success && (
-              <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-md animate-in slide-in-from-top-2 duration-300">
-                <div className="flex">
-                  <div className="flex-shrink-0">✅</div>
-                  <div className="ml-3">
-                    <p className="text-sm text-green-700">{success}</p>
-                  </div>
-                </div>
-              </div>
-            )}
+            <div className="form-group">
+              <label htmlFor="confirmPassword">Confirm Password</label>
+              <input
+                type="password"
+                id="confirmPassword"
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                placeholder="Re-enter your password"
+                required
+              />
+            </div>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email Address</label>
-                <div className="mt-1">
+            <div className="form-group">
+              <label htmlFor="role">Role</label>
+              <select
+                id="role"
+                name="role"
+                value={formData.role}
+                onChange={handleChange}
+                required
+              >
+                <option value="student">Student</option>
+                <option value="faculty">Faculty Member</option>
+                <option value="staff">Staff</option>
+              </select>
+            </div>
+
+            {formData.role === 'student' && (
+              <>
+                <div className="form-group">
+                  <label htmlFor="student_number">Student Number</label>
                   <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value={formData.email}
+                    type="text"
+                    id="student_number"
+                    name="student_number"
+                    value={formData.student_number}
                     onChange={handleChange}
-                    placeholder="your.email@smartcampus.edu"
+                    placeholder="e.g. 20240001"
                     required
-                    autoFocus
-                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors"
                   />
                 </div>
-              </div>
-
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
-                <div className="mt-1">
-                  <input
-                    type="password"
-                    id="password"
-                    name="password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    placeholder="Create a strong password"
-                    required
-                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors"
-                  />
-                </div>
-                {formData.password && (
-                  <div className="mt-2 grid grid-cols-2 gap-1">
-                    <small className={`flex items-center text-xs ${passwordErrors.length ? 'text-green-600 font-medium' : 'text-gray-500'}`}>
-                      {passwordErrors.length ? '✓' : '•'} 8+ chars
-                    </small>
-                    <small className={`flex items-center text-xs ${passwordErrors.uppercase ? 'text-green-600 font-medium' : 'text-gray-500'}`}>
-                      {passwordErrors.uppercase ? '✓' : '•'} Uppercase
-                    </small>
-                    <small className={`flex items-center text-xs ${passwordErrors.lowercase ? 'text-green-600 font-medium' : 'text-gray-500'}`}>
-                      {passwordErrors.lowercase ? '✓' : '•'} Lowercase
-                    </small>
-                    <small className={`flex items-center text-xs ${passwordErrors.number ? 'text-green-600 font-medium' : 'text-gray-500'}`}>
-                      {passwordErrors.number ? '✓' : '•'} Number
-                    </small>
-                    <small className={`flex items-center text-xs ${passwordErrors.special ? 'text-green-600 font-medium' : 'text-gray-500'}`}>
-                      {passwordErrors.special ? '✓' : '•'} Special char
-                    </small>
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">Confirm Password</label>
-                <div className="mt-1">
-                  <input
-                    type="password"
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                    placeholder="Re-enter your password"
-                    required
-                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="role" className="block text-sm font-medium text-gray-700">Role</label>
-                <div className="mt-1">
+                <div className="form-group">
+                  <label htmlFor="department_id">Department (Optional)</label>
                   <select
-                    id="role"
-                    name="role"
-                    value={formData.role}
+                    id="department_id"
+                    name="department_id"
+                    value={formData.department_id}
                     onChange={handleChange}
-                    required
-                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors bg-white"
                   >
-                    <option value="student">Student</option>
-                    <option value="faculty">Faculty Member</option>
-                    <option value="staff">Staff</option>
+                    <option value="">Select department (optional)</option>
+                    {departments.map(dept => (
+                      <option key={dept.id} value={dept.id}>
+                        {dept.name} ({dept.code})
+                      </option>
+                    ))}
                   </select>
                 </div>
-              </div>
+              </>
+            )}
 
-              {formData.role === 'student' && (
-                <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                  <div>
-                    <label htmlFor="student_number" className="block text-sm font-medium text-gray-700">Student Number</label>
-                    <input
-                      type="text"
-                      id="student_number"
-                      name="student_number"
-                      value={formData.student_number}
-                      onChange={handleChange}
-                      placeholder="e.g. 20240001"
-                      required
-                      className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="department_id" className="block text-sm font-medium text-gray-700">Department (Optional)</label>
-                    <select
-                      id="department_id"
-                      name="department_id"
-                      value={formData.department_id}
-                      onChange={handleChange}
-                      className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors bg-white"
-                    >
-                      <option value="">Select department (optional)</option>
-                      {departments.map(dept => (
-                        <option key={dept.id} value={dept.id}>
-                          {dept.name} ({dept.code})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+            {formData.role === 'faculty' && (
+              <>
+                <div className="form-group">
+                  <label htmlFor="employee_number">Employee Number</label>
+                  <input
+                    type="text"
+                    id="employee_number"
+                    name="employee_number"
+                    value={formData.employee_number}
+                    onChange={handleChange}
+                    placeholder="e.g. FAC001"
+                    required
+                  />
                 </div>
-              )}
-
-              {formData.role === 'faculty' && (
-                <div className="bg-purple-50 p-4 rounded-lg border border-purple-100 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                  <div>
-                    <label htmlFor="employee_number" className="block text-sm font-medium text-gray-700">Employee Number</label>
-                    <input
-                      type="text"
-                      id="employee_number"
-                      name="employee_number"
-                      value={formData.employee_number}
-                      onChange={handleChange}
-                      placeholder="e.g. FAC001"
-                      required
-                      className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="title" className="block text-sm font-medium text-gray-700">Title (Optional)</label>
-                    <input
-                      type="text"
-                      id="title"
-                      name="title"
-                      value={formData.title}
-                      onChange={handleChange}
-                      placeholder="e.g. Prof. Dr., Assoc. Prof."
-                      className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="department_id" className="block text-sm font-medium text-gray-700">Department (Optional)</label>
-                    <select
-                      id="department_id"
-                      name="department_id"
-                      value={formData.department_id}
-                      onChange={handleChange}
-                      className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors bg-white"
-                    >
-                      <option value="">Select department (optional)</option>
-                      {departments.map(dept => (
-                        <option key={dept.id} value={dept.id}>
-                          {dept.name} ({dept.code})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                <div className="form-group">
+                  <label htmlFor="title">Title (Optional)</label>
+                  <input
+                    type="text"
+                    id="title"
+                    name="title"
+                    value={formData.title}
+                    onChange={handleChange}
+                    placeholder="e.g. Prof. Dr., Assoc. Prof."
+                  />
                 </div>
-              )}
+                <div className="form-group">
+                  <label htmlFor="department_id">Department (Optional)</label>
+                  <select
+                    id="department_id"
+                    name="department_id"
+                    value={formData.department_id}
+                    onChange={handleChange}
+                  >
+                    <option value="">Select department (optional)</option>
+                    {departments.map(dept => (
+                      <option key={dept.id} value={dept.id}>
+                        {dept.name} ({dept.code})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            )}
 
-              <div>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className={`w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors ${loading ? 'opacity-75 cursor-not-allowed' : ''}`}
-                >
-                  {loading ? (
-                    <span className="flex items-center gap-2">
-                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                      Creating Account...
-                    </span>
-                  ) : 'Register'}
-                </button>
-              </div>
-            </form>
+            <button type="submit" className="btn-primary" disabled={loading}>
+              {loading ? 'Creating Account...' : 'Register'}
+            </button>
+          </form>
 
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">
-                  Already have an account?
-                </span>
-              </div>
-            </div>
-
-            <div className="text-center">
-              <Link href="/login" className="font-medium text-blue-600 hover:text-blue-500">
-                Sign in here
-              </Link>
-            </div>
+          <div className="auth-footer">
+            <p>
+              Already have an account? <Link href="/login">Sign in</Link>
+            </p>
           </div>
         </div>
       </div>

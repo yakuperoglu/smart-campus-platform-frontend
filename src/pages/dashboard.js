@@ -6,17 +6,10 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+import Link from 'next/link';
 import { useAuth } from '../context/AuthContext';
-import { Wallet, GraduationCap, TrendingUp, Users } from 'lucide-react';
-
-// Layout
-import DashboardLayout from '../components/layout/DashboardLayout';
-
-// Widgets
-import StatCard from '../components/dashboard/StatCard';
-import AttendanceCard from '../components/dashboard/AttendanceCard';
-import CalendarWidget from '../components/dashboard/CalendarWidget';
-import ActivityFeed from '../components/dashboard/ActivityFeed';
+import Navbar from '../components/Navbar';
+import AdminDashboard from '../components/admin/AdminDashboard';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -41,6 +34,7 @@ export default function Dashboard() {
         if (result.success) {
           setUserData(result.user);
         } else {
+          // Fallback to basic user if fetch fails
           setUserData(user);
         }
         setHasFetched(true);
@@ -52,15 +46,34 @@ export default function Dashboard() {
 
     fetchProfile();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, authLoading]);
+  }, [user, authLoading]); // Only when user or authLoading changes, but hasFetched prevents re-runs
 
-  // Loading State
+  const getRoleBadgeColor = (role) => {
+    const colors = {
+      admin: '#e74c3c',
+      faculty: '#3498db',
+      student: '#27ae60',
+      staff: '#f39c12'
+    };
+    return colors[role] || '#95a5a6';
+  };
+
+  const getImageUrl = (url) => {
+    if (!url) return null;
+    if (url.startsWith('http')) return url;
+
+    const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000/api/v1';
+    const rootUrl = apiBase.replace(/\/api\/v1\/?$/, '');
+
+    return `${rootUrl}${url}`;
+  };
+
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-gray-200 border-t-slate-900 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-500 font-medium tracking-tight">Loading Smart Campus...</p>
+      <div className="dashboard-container">
+        <div className="loading">
+          <div className="spinner"></div>
+          <p>Loading dashboard...</p>
         </div>
       </div>
     );
@@ -70,83 +83,198 @@ export default function Dashboard() {
     return null;
   }
 
-  // Calculate generic stats for demo purposes
-  // In a real app, these would come from the API
-  const stats = [
-    {
-      title: 'GAP / GPA',
-      value: userData.profile?.gpa ? Number(userData.profile.gpa).toFixed(2) : '3.42',
-      icon: GraduationCap,
-      color: 'blue',
-      trend: 'up',
-      trendValue: '0.12'
-    },
-    {
-      title: 'Wallet Balance',
-      value: userData.wallet ? `${userData.wallet.balance} ₺` : '0.00 ₺',
-      icon: Wallet,
-      color: 'green',
-      trend: 'up',
-      trendValue: '5%'
-    },
-    {
-      title: 'Attendance Rate',
-      value: '88%',
-      icon: Users,
-      color: 'purple',
-      trend: 'down',
-      trendValue: '2%'
-    },
-  ];
-
   return (
-    <DashboardLayout user={userData} onLogout={logout}>
+    <>
       <Head>
         <title>Dashboard - Smart Campus Platform</title>
       </Head>
 
-      {/* Page Header */}
-      <div className="mb-8 animate-in slide-in-from-bottom-2 duration-500">
-        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
-          Welcome back, {userData.first_name || 'Student'}! 👋
-        </h1>
-        <p className="text-gray-500 mt-1">Here is what’s happening with your campus life today.</p>
-      </div>
+      <div className="dashboard-container">
+        <Navbar userData={userData} />
 
-      {/* Stat Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in slide-in-from-bottom-4 duration-500 delay-100">
-        {stats.map((stat, index) => (
-          <StatCard key={index} {...stat} />
-        ))}
-      </div>
-
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
-
-        {/* Left Column (2/3 width) */}
-        <div className="lg:col-span-2 space-y-6 animate-in slide-in-from-bottom-5 duration-500 delay-200">
-
-          {/* Attendance Intelligence */}
-          <div className="h-64">
-            <AttendanceCard role={userData.role} />
+        <div className="dashboard-content">
+          <div className="welcome-section">
+            <h2>Welcome to Smart Campus Dashboard</h2>
+            <p className="subtitle">Your personalized campus management portal</p>
           </div>
 
-          {/* Weekly Schedule */}
-          <div className="min-h-[300px]">
-            <CalendarWidget />
+          <div className="user-card">
+            <div className="user-avatar">
+              {userData?.profile_picture_url ? (
+                <img src={getImageUrl(userData.profile_picture_url)} alt="Profile" />
+              ) : (
+                <div className="avatar-placeholder">
+                  {userData?.email?.charAt(0).toUpperCase()}
+                </div>
+              )}
+            </div>
+
+            <div className="user-info">
+              <h3>{userData?.email}</h3>
+              <span
+                className="role-badge"
+                style={{ backgroundColor: getRoleBadgeColor(userData?.role) }}
+              >
+                {userData?.role?.toUpperCase()}
+              </span>
+              <p className="verification-status">
+                {userData?.is_verified ? '✅ Verified' : '⚠️ Not Verified'}
+              </p>
+            </div>
+          </div>
+
+          {userData?.profile && (
+            <div className="profile-section">
+              <h3>Profile Information</h3>
+              <div className="profile-grid">
+                {userData.role === 'student' && (
+                  <>
+                    <div className="profile-item">
+                      <span className="label">Student Number:</span>
+                      <span className="value">{userData.profile.student_number}</span>
+                    </div>
+                    <div className="profile-item">
+                      <span className="label">GPA:</span>
+                      <span className="value">{userData.profile.gpa != null ? (Number(userData.profile.gpa) || 0).toFixed(2) : 'N/A'}</span>
+                    </div>
+                    <div className="profile-item">
+                      <span className="label">CGPA:</span>
+                      <span className="value">{userData.profile.cgpa != null ? (Number(userData.profile.cgpa) || 0).toFixed(2) : 'N/A'}</span>
+                    </div>
+                    {userData.profile.department && (
+                      <div className="profile-item">
+                        <span className="label">Department:</span>
+                        <span className="value">{userData.profile.department.name}</span>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {userData.role === 'faculty' && (
+                  <>
+                    <div className="profile-item">
+                      <span className="label">Employee Number:</span>
+                      <span className="value">{userData.profile.employee_number}</span>
+                    </div>
+                    {userData.profile.title && (
+                      <div className="profile-item">
+                        <span className="label">Title:</span>
+                        <span className="value">{userData.profile.title}</span>
+                      </div>
+                    )}
+                    {userData.profile.department && (
+                      <div className="profile-item">
+                        <span className="label">Department:</span>
+                        <span className="value">{userData.profile.department.name}</span>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
+          {userData?.wallet && (
+            <div className="wallet-section">
+              <h3>💳 Digital Wallet</h3>
+              <div className="wallet-card">
+                <div className="wallet-balance">
+                  <span className="currency">{userData.wallet.currency}</span>
+                  <span className="amount">{(parseFloat(userData.wallet.balance) || 0).toFixed(2)}</span>
+                </div>
+                <p className="wallet-status">
+                  Status: {userData.wallet.is_active ? '✅ Active' : '⛔ Inactive'}
+                </p>
+              </div>
+            </div>
+          )}
+
+          <div className="features-grid">
+            <Link href="/courses" style={{ textDecoration: 'none' }} prefetch={false}>
+              <div className="feature-card" style={{ cursor: 'pointer' }}>
+                <div className="feature-icon">📚</div>
+                <h4>Courses</h4>
+                <p>View and manage your courses</p>
+              </div>
+            </Link>
+
+            {userData?.role === 'student' ? (
+              <Link href="/attendance" style={{ textDecoration: 'none' }} prefetch={false}>
+                <div className="feature-card" style={{ cursor: 'pointer' }}>
+                  <div className="feature-icon">📍</div>
+                  <h4>Check In</h4>
+                  <p>GPS-based attendance check-in</p>
+                </div>
+              </Link>
+            ) : userData?.role === 'faculty' ? (
+              <Link href="/attendance-open" style={{ textDecoration: 'none' }} prefetch={false}>
+                <div className="feature-card" style={{ cursor: 'pointer' }}>
+                  <div className="feature-icon">📋</div>
+                  <h4>Open Attendance</h4>
+                  <p>GPS-based attendance session</p>
+                </div>
+              </Link>
+            ) : (
+              <Link href="/admin/analytics/attendance" style={{ textDecoration: 'none' }} prefetch={false}>
+                <div className="feature-card" style={{ cursor: 'pointer' }}>
+                  <div className="feature-icon">✅</div>
+                  <h4>Attendance</h4>
+                  <p>GPS-based attendance system</p>
+                </div>
+              </Link>
+            )}
+
+            <Link href="/meals" style={{ textDecoration: 'none' }} prefetch={false}>
+              <div className="feature-card" style={{ cursor: 'pointer' }}>
+                <div className="feature-icon">🍽️</div>
+                <h4>Meals</h4>
+                <p>Reserve your meals</p>
+              </div>
+            </Link>
+
+            <Link href="/events" style={{ textDecoration: 'none' }} prefetch={false}>
+              <div className="feature-card" style={{ cursor: 'pointer' }}>
+                <div className="feature-icon">🎫</div>
+                <h4>Events</h4>
+                <p>Campus events and activities</p>
+              </div>
+            </Link>
+
+            {/* Admin-specific cards */}
+            {userData?.role === 'admin' && (
+              <>
+                {/* Admin Dashboard Stats & Charts */}
+                <div className="full-width-card" style={{ gridColumn: '1 / -1' }}>
+                  <AdminDashboard />
+                </div>
+
+                <Link href="/admin/courses" style={{ textDecoration: 'none' }} prefetch={false}>
+                  <div className="feature-card admin-card" style={{ cursor: 'pointer', borderLeft: '4px solid #e74c3c' }}>
+                    <div className="feature-icon">📚</div>
+                    <h4>Course Management</h4>
+                    <p>Create and manage courses & sections</p>
+                  </div>
+                </Link>
+                <Link href="/admin/users" style={{ textDecoration: 'none' }} prefetch={false}>
+                  <div className="feature-card admin-card" style={{ cursor: 'pointer', borderLeft: '4px solid #e74c3c' }}>
+                    <div className="feature-icon">👥</div>
+                    <h4>User Management</h4>
+                    <p>Manage users and roles</p>
+                  </div>
+                </Link>
+
+                <Link href="/admin/analytics/attendance" style={{ textDecoration: 'none' }} prefetch={false}>
+                  <div className="feature-card admin-card" style={{ cursor: 'pointer', borderLeft: '4px solid #e74c3c' }}>
+                    <div className="feature-icon">🛡️</div>
+                    <h4>Attendance Intelligence</h4>
+                    <p>Anti-fraud & Attendance Analytics</p>
+                  </div>
+                </Link>
+              </>
+            )}
           </div>
         </div>
-
-        {/* Right Column (1/3 width) */}
-        <div className="space-y-6 animate-in slide-in-from-bottom-5 duration-500 delay-300">
-          {/* Activity Feed */}
-          <div className="h-full min-h-[400px]">
-            <ActivityFeed />
-          </div>
-        </div>
       </div>
-
-    </DashboardLayout>
+    </>
   );
 }
-

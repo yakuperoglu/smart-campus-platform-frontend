@@ -6,12 +6,10 @@
 import Head from 'next/head';
 import { AuthProvider } from '../context/AuthContext';
 import '../styles/globals.css';
-// Component styles will be moved to Tailwind classes
-// import '../styles/Auth.css';
-// import '../styles/Dashboard.css';
-// import '../styles/Landing.css';
-// import '../styles/Courses.css';
-
+import '../styles/Auth.css';
+import '../styles/Dashboard.css';
+import '../styles/Landing.css';
+import '../styles/Courses.css';
 
 export default function App({ Component, pageProps }) {
   return (

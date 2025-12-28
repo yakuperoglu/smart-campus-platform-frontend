@@ -1,55 +1,100 @@
-/**
- * Meals Index Page
- * 
- * Redirects to menu page or shows overview.
- */
+/**
+ * Meals Index Page
+ * 
+ * Redirects to menu page or shows overview.
+ */
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/router';
+import Head from 'next/head';
+import Link from 'next/link';
+import Navbar from '../../components/Navbar';
+
+export default function MealsIndexPage() {
+    const router = useRouter();
+
+    // Auto-redirect to menu
+    useEffect(() => {
+        router.replace('/meals/menu');
+    }, []);
+
+    return (
+        <>
+            <Head>
+                <title>Meals - Smart Campus</title>
+            </Head>
+            <Navbar />
+
+            <div style={styles.container}>
+                <h1 style={styles.title}>🍽️ Cafeteria</h1>
+                <div style={styles.cardGrid}>
+                    <Link href="/meals/menu" style={styles.card}>
+                        <span style={styles.cardIcon}>📋</span>
+                        <span style={styles.cardTitle}>Browse Menu</span>
+                        <span style={styles.cardDesc}>See today's meals and reserve</span>
+                    </Link>
+                    <Link href="/meals/reservations" style={styles.card}>
+                        <span style={styles.cardIcon}>🎫</span>
+                        <span style={styles.cardTitle}>My Reservations</span>
+                        <span style={styles.cardDesc}>View your QR codes</span>
+                    </Link>
+                </div>
+                <p style={styles.redirect}>Redirecting to menu...</p>
+            </div>
+        </>
+    );
+}
+
+const styles = {
+    container: {
+        maxWidth: '600px',
+        margin: '0 auto',
+        padding: '40px 24px',
+        textAlign: 'center',
+        fontFamily: 'system-ui, -apple-system, sans-serif'
+    },
+    title: {
+        fontSize: '32px',
+        fontWeight: '700',
+        marginBottom: '32px'
+    },
+    cardGrid: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+        gap: '16px',
+        marginBottom: '32px'
+    },
+    card: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        padding: '24px',
+        backgroundColor: 'white',
+        borderRadius: '16px',
+        textDecoration: 'none',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
+    },
+    cardIcon: {
+        fontSize: '40px',
+        marginBottom: '12px'
+    },
+    cardTitle: {
+        fontSize: '18px',
+        fontWeight: '600',
+        color: '#111827',
+        marginBottom: '4px'
+    },
+    cardDesc: {
+        fontSize: '14px',
+        color: '#6B7280'
+    },
+    redirect: {
+        color: '#9CA3AF',
+        fontSize: '14px'
+    }
+};
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/router';
-import Head from 'next/head';
-import Link from 'next/link';
-import DashboardLayout from '../../components/layout/DashboardLayout';
-import { useAuth } from '../../context/AuthContext';
-import { Utensils, Ticket } from 'lucide-react';
-
-export default function MealsIndexPage() {
-    const { user, logout } = useAuth();
-    const router = useRouter();
-
-    // Auto-redirect to menu
-    useEffect(() => {
-        router.replace('/meals/menu');
-    }, []);
-
-    return (
-        <DashboardLayout user={user} onLogout={logout}>
-            <Head>
-                <title>Meals - Smart Campus</title>
-            </Head>
-
-            <div className="max-w-2xl mx-auto py-12 px-4 text-center">
-                <h1 className="text-3xl font-bold text-gray-900 mb-8">🍽️ Cafeteria</h1>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                    <Link href="/meals/menu" className="group block bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:border-blue-300 transition-all">
-                        <div className="bg-blue-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-                            <Utensils className="h-8 w-8 text-blue-600" />
-                        </div>
-                        <h3 className="text-lg font-bold text-gray-900 mb-1">Browse Menu</h3>
-                        <p className="text-gray-500 text-sm">See today's meals and reserve</p>
-                    </Link>
-
-                    <Link href="/meals/reservations" className="group block bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:border-blue-300 transition-all">
-                        <div className="bg-purple-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-                            <Ticket className="h-8 w-8 text-purple-600" />
-                        </div>
-                        <h3 className="text-lg font-bold text-gray-900 mb-1">My Reservations</h3>
-                        <p className="text-gray-500 text-sm">View your QR codes</p>
-                    </Link>
-                </div>
-
-                <p className="text-gray-400 text-sm animate-pulse">Redirecting to menu...</p>
-            </div>
-        </DashboardLayout>
-    );
+// Force SSR to prevent static generation errors
+export async function getServerSideProps() {
+    return { props: {} };
 }
