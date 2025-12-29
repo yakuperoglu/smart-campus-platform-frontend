@@ -11,9 +11,9 @@ import Link from 'next/link';
 import { QRCodeSVG } from 'qrcode.react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { useAuth } from '../../context/AuthContext';
-import api from '../../config/api';
+import eventService from '../../services/eventService';
 import FeedbackMessage from '../../components/FeedbackMessage';
-import { Ticket, Calendar, MapPin, QrCode, ArrowRight, Download, Printer } from 'lucide-react';
+import { Ticket, Calendar, MapPin, QrCode, ArrowRight, Download, Printer, Clock } from 'lucide-react';
 
 export default function MyTicketsPage() {
     const router = useRouter();
@@ -36,8 +36,8 @@ export default function MyTicketsPage() {
     const fetchRegistrations = async () => {
         try {
             setLoading(true);
-            const response = await api.get('/events/my-registrations?include_event=true');
-            setRegistrations(response.data.data || []);
+            const response = await eventService.getMyRegistrations();
+            setRegistrations(response.data || []);
         } catch (err) {
             console.error('Error fetching tickets:', err);
         } finally {

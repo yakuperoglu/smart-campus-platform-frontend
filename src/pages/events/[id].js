@@ -14,6 +14,8 @@ import api from '../../config/api';
 import FeedbackMessage from '../../components/FeedbackMessage';
 import { Calendar, MapPin, Users, Clock, ArrowLeft, Ticket, Share2, CreditCard } from 'lucide-react';
 
+import eventService from '../../services/eventService';
+
 export default function EventDetailsPage() {
     const router = useRouter();
     const { id } = router.query;
@@ -37,8 +39,8 @@ export default function EventDetailsPage() {
     const fetchEventDetails = async () => {
         try {
             setLoading(true);
-            const response = await api.get(`/events/${id}`);
-            setEvent(response.data.data);
+            const response = await eventService.getEventDetails(id);
+            setEvent(response.data);
         } catch (err) {
             console.error('Error fetching event:', err);
             setFeedback({ type: 'error', message: 'Failed to load event details' });
@@ -56,7 +58,7 @@ export default function EventDetailsPage() {
         setFeedback({ type: '', message: '' });
 
         try {
-            await api.post('/events/register', { event_id: event.id });
+            await eventService.registerForEvent(event.id);
             setFeedback({ type: 'success', message: 'Successfully registered! Check My Tickets.' });
 
             // Refresh data to update capacity
