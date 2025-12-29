@@ -199,7 +199,7 @@ export default function Attendance() {
     if (showScanner) {
       const scanner = new Html5QrcodeScanner(
         "reader",
-        { fps: 10, qrbox: { width: 250, height: 250 } },
+        { fps: 10, qrbox: 250, aspectRatio: 1.0 },
         false
       );
 
@@ -491,7 +491,7 @@ export default function Attendance() {
               </button>
             </div>
             <div className="p-4 bg-black">
-              <div id="reader" className="w-full rounded-lg overflow-hidden"></div>
+              <div id="reader" className="w-full h-full min-h-[300px] rounded-lg overflow-hidden bg-black"></div>
             </div>
             <div className="p-4 bg-gray-50 text-center">
               <p className="text-xs text-gray-500">Point your camera at the session QR code</p>
