@@ -72,15 +72,18 @@ export default function Dashboard() {
 
   // Calculate generic stats for demo purposes
   // In a real app, these would come from the API
+
+  const isStudent = userData?.role === 'student';
+
   const stats = [
-    {
+    ...(isStudent ? [{
       title: 'GAP / GPA',
       value: userData.profile?.gpa ? Number(userData.profile.gpa).toFixed(2) : '3.42',
       icon: GraduationCap,
       color: 'blue',
       trend: 'up',
       trendValue: '0.12'
-    },
+    }] : []),
     {
       title: 'Wallet Balance',
       value: userData.wallet ? `${userData.wallet.balance} ₺` : '0.00 ₺',
@@ -89,14 +92,14 @@ export default function Dashboard() {
       trend: 'up',
       trendValue: '5%'
     },
-    {
+    ...(isStudent ? [{
       title: 'Attendance Rate',
       value: '88%',
       icon: Users,
       color: 'purple',
       trend: 'down',
       trendValue: '2%'
-    },
+    }] : []),
   ];
 
   return (
@@ -108,7 +111,7 @@ export default function Dashboard() {
       {/* Page Header */}
       <div className="mb-8 animate-in slide-in-from-bottom-2 duration-500">
         <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
-          Welcome back, {userData.first_name || 'Student'}! 👋
+          Welcome back, {userData.first_name || (isStudent ? 'Student' : userData.role)}! 👋
         </h1>
         <p className="text-gray-500 mt-1">Here is what’s happening with your campus life today.</p>
       </div>
