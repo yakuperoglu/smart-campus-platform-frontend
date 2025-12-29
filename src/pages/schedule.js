@@ -52,9 +52,10 @@ export default function SchedulePage() {
 
             setLoading(true);
 
-            const response = await api.get(`/scheduling/schedule?semester=${semester}&year=${year}`);
+            // Use service method which now fetches from enrollments
+            const response = await scheduleService.getMySchedule(semester, year);
 
-            setSchedule(response.data.data || []);
+            setSchedule(response.data || []);
 
             setError(null);
 

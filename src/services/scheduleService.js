@@ -66,8 +66,50 @@ const scheduleService = {
      */
     async getMySchedule(semester, year) {
         try {
-            const response = await api.get(`/scheduling/schedule?semester=${semester}&year=${year}`);
-            return response.data;
+            // Use enrollments endpoint to get the student's actual schedule
+            const response = await api.get('/enrollments', {
+                params: {
+                    semester,
+                    year,
+                    status: 'enrolled' // Only show active enrollments
+                }
+            });
+
+            const enrollments = response.data.data.enrollments || [];
+
+            // Transform enrollments into flat schedule entries
+            const scheduleEntries = [];
+
+            enrollments.forEach(enrollment => {
+                const section = enrollment.section;
+                const course = enrollment.course;
+
+                // If section has a schedule defined
+                if (section.schedule && Array.isArray(section.schedule)) {
+                    section.schedule.forEach(slot => {
+                        scheduleEntries.push({
+                            id: `${enrollment.id}-${slot.day}-${slot.start_time}`, // Unique ID for calendar
+                            section_id: section.id,
+                            course_code: course.code,
+                            course_name: course.name,
+                            section_number: section.section_number,
+                            instructor: section.instructor?.name || 'TBA', // Adjust based on enrollment API response structure
+                            day: slot.day,
+                            start_time: slot.start_time,
+                            end_time: slot.end_time,
+                            type: 'lecture', // Default or derive from somewhere
+                            classroom: section.classroom, // { building, room_number }
+                            section: { // Keep nested section for compatibility if needed
+                                ...section,
+                                course_code: course.code,
+                                course_name: course.name
+                            }
+                        });
+                    });
+                }
+            });
+
+            return { data: scheduleEntries };
         } catch (error) {
             throw this._handleError(error);
         }
