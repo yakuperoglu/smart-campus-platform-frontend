@@ -449,34 +449,36 @@ export default function AttendanceOpen() {
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden h-full min-h-[500px] relative">
               {location && location.lat && location.lng ? (
                 <div className="h-full w-full absolute inset-0">
-                  <MapContainer
-                    center={[location.lat, location.lng]}
-                    zoom={18}
-                    style={{ height: '100%', width: '100%' }}
-                    ref={mapRef}
-                  >
-                    <TileLayer
-                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    />
-                    <Marker position={[location.lat, location.lng]}>
-                      <Popup>
-                        <strong>Check-in Point</strong>
-                        <br />
-                        Radius: {radius}m
-                      </Popup>
-                    </Marker>
-                    <Circle
+                  {!activeSession && (
+                    <MapContainer
                       center={[location.lat, location.lng]}
-                      radius={radius}
-                      pathOptions={{
-                        color: '#2563eb',
-                        fillColor: '#3b82f6',
-                        fillOpacity: 0.2,
-                        weight: 2
-                      }}
-                    />
-                  </MapContainer>
+                      zoom={18}
+                      style={{ height: '100%', width: '100%' }}
+                      ref={mapRef}
+                    >
+                      <TileLayer
+                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                      />
+                      <Marker position={[location.lat, location.lng]}>
+                        <Popup>
+                          <strong>Check-in Point</strong>
+                          <br />
+                          Radius: {radius}m
+                        </Popup>
+                      </Marker>
+                      <Circle
+                        center={[location.lat, location.lng]}
+                        radius={radius}
+                        pathOptions={{
+                          color: '#2563eb',
+                          fillColor: '#3b82f6',
+                          fillOpacity: 0.2,
+                          weight: 2
+                        }}
+                      />
+                    </MapContainer>
+                  )}
                 </div>
               ) : (
                 <div className="h-full flex flex-col items-center justify-center p-8 text-center text-gray-400 bg-gray-50">
