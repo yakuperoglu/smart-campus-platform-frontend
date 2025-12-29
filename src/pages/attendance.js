@@ -422,7 +422,7 @@ export default function Attendance() {
 
         {/* Right Column: Map */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden h-[500px] relative animate-in slide-in-from-bottom-3 duration-500 delay-200">
-          {location && typeof window !== 'undefined' ? (
+          {location && typeof window !== 'undefined' && !showScanner ? (
             <MapContainer
               center={[location.lat, location.lng]}
               zoom={18}
