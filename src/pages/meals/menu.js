@@ -10,7 +10,8 @@ import Head from 'next/head';
 import Link from 'next/link';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { useAuth } from '../../context/AuthContext';
-import api from '../../config/api';
+import mealService from '../../services/mealService';
+import walletService from '../../services/walletService';
 import FeedbackMessage from '../../components/FeedbackMessage';
 import { Calendar, Info, Clock, Utensils, Award, CreditCard, ChevronLeft, ChevronRight, Flame, Dumbbell } from 'lucide-react';
 
@@ -50,12 +51,12 @@ export default function MealMenuPage() {
         try {
             setLoading(true);
             const [cafRes, balanceRes] = await Promise.all([
-                api.get('/meals/cafeterias'),
-                api.get('/wallet/balance').catch(() => ({ data: { data: { balance: 0 } } }))
+                mealService.getCafeterias(),
+                walletService.getBalance().catch(() => ({ data: { balance: 0 } }))
             ]);
 
-            setCafeterias(cafRes.data.data || []);
-            setWalletBalance(balanceRes.data.data?.balance || 0);
+            setCafeterias(cafRes.data || []);
+            setWalletBalance(balanceRes.data?.balance || 0);
 
             // Check if student has scholarship
             if (user.role === 'student' && user.studentProfile) {
@@ -76,12 +77,12 @@ export default function MealMenuPage() {
 
     const fetchMenus = async () => {
         try {
-            let url = `/meals/menus?date=${selectedDate}`;
+            const options = { date: selectedDate };
             if (selectedCafeteria) {
-                url += `&cafeteria_id=${selectedCafeteria}`;
+                options.cafeteriaId = selectedCafeteria;
             }
-            const response = await api.get(url);
-            setMenus(response.data.data || []);
+            const response = await mealService.getMenus(options);
+            setMenus(response.data.menus || response.data || []);
         } catch (err) {
             console.error('Error fetching menus:', err);
         }
@@ -101,20 +102,20 @@ export default function MealMenuPage() {
 
         try {
             setReservingMenuId(menu.id);
-            await api.post('/meals/reservations', { menu_id: menu.id });
+            await mealService.createReservation(menu.id);
 
             setFeedback({ type: 'success', message: 'Meal reserved successfully! Check your reservations for the QR code.' });
 
             // Refresh balance if paid
             if (!studentInfo?.hasScholarship && menu.price > 0) {
-                const balanceRes = await api.get('/wallet/balance');
-                setWalletBalance(balanceRes.data.data?.balance || 0);
+                const balanceRes = await walletService.getBalance();
+                setWalletBalance(balanceRes.data?.balance || 0);
             }
 
             fetchMenus();
         } catch (err) {
             console.error('Reservation error:', err);
-            const errorMsg = err.response?.data?.message || 'Failed to reserve meal';
+            const errorMsg = err.message || 'Failed to reserve meal';
 
             // Handle specific error cases
             if (errorMsg.includes('quota')) {

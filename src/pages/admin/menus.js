@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import api from '../../config/api';
+import mealService from '../../services/mealService';
 import Navbar from '../../components/Navbar';
 import { useAuth } from '../../context/AuthContext';
 
@@ -39,12 +40,13 @@ export default function AdminMenus() {
     const fetchMenus = async () => {
         setLoading(true);
         try {
-            const res = await api.get('/meals/menus');
-            if (res.data.success) {
-                setMenus(res.data.data.menus || res.data.data || []);
+            const res = await mealService.getMenus();
+            if (res.success) {
+                setMenus(res.data.menus || res.data || []);
             }
         } catch (error) {
             console.error('Error fetching menus:', error);
+            setFeedback({ type: 'error', message: 'Failed to fetch menus' });
         } finally {
             setLoading(false);
         }
@@ -52,12 +54,13 @@ export default function AdminMenus() {
 
     const fetchCafeterias = async () => {
         try {
-            const res = await api.get('/meals/cafeterias');
-            if (res.data.success) {
-                setCafeterias(res.data.data || []);
+            const res = await mealService.getCafeterias();
+            if (res.success) {
+                setCafeterias(res.data || []);
             }
         } catch (error) {
             console.error('Error fetching cafeterias:', error);
+            setFeedback({ type: 'error', message: 'Failed to fetch cafeterias. Please ensure backend is running and seeded.' });
         }
     };
 
@@ -88,10 +91,10 @@ export default function AdminMenus() {
         e.preventDefault();
         try {
             if (editingMenu) {
-                await api.put(`/meals/menus/${editingMenu.id}`, form);
+                await mealService.updateMenu(editingMenu.id, form);
                 setFeedback({ type: 'success', message: 'Menu updated successfully!' });
             } else {
-                await api.post('/meals/menus', form);
+                await mealService.createMenu(form);
                 setFeedback({ type: 'success', message: 'Menu created successfully!' });
             }
             setShowForm(false);
@@ -99,7 +102,7 @@ export default function AdminMenus() {
             resetForm();
             fetchMenus();
         } catch (error) {
-            setFeedback({ type: 'error', message: error.response?.data?.message || 'Failed to save menu' });
+            setFeedback({ type: 'error', message: error.message || 'Failed to save menu' });
         }
     };
 
@@ -120,7 +123,7 @@ export default function AdminMenus() {
     const handleDelete = async (id) => {
         if (!confirm('Are you sure you want to delete this menu?')) return;
         try {
-            await api.delete(`/meals/menus/${id}`);
+            await mealService.deleteMenu(id);
             setFeedback({ type: 'success', message: 'Menu deleted!' });
             fetchMenus();
         } catch (error) {

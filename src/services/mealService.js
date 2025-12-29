@@ -100,6 +100,35 @@ const mealService = {
     },
 
     /**
+     * Create a new menu (Admin only)
+     * @param {Object} menuData - Menu data
+     * @returns {Promise<{data: MealMenu}>}
+     */
+    async createMenu(menuData) {
+        try {
+            const response = await api.post('/meals/menus', menuData);
+            return response.data;
+        } catch (error) {
+            throw this._handleError(error);
+        }
+    },
+
+    /**
+     * Update a menu (Admin only)
+     * @param {string} menuId - Menu ID
+     * @param {Object} menuData - Data to update
+     * @returns {Promise<{data: MealMenu}>}
+     */
+    async updateMenu(menuId, menuData) {
+        try {
+            const response = await api.put(`/meals/menus/${menuId}`, menuData);
+            return response.data;
+        } catch (error) {
+            throw this._handleError(error);
+        }
+    },
+
+    /**
      * Get user's reservations
      * @param {Object} [options] - Query options
      * @param {string} [options.status] - Filter by status
