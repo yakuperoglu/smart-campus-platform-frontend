@@ -1,13 +1,19 @@
-/**
- * Staff QR Scanner Page
- * 
- * Scan QR codes for meal pickup validation and event check-in.
- */
-
 import { useState, useEffect, useContext, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import Navbar from '../../components/Navbar';
+import {
+    QrCode,
+    Camera,
+    Zap,
+    X,
+    CheckCircle,
+    AlertCircle,
+    Copy,
+    History,
+    Utensils,
+    Ticket
+} from 'lucide-react';
+import DashboardLayout from '../../components/layout/DashboardLayout';
 import { AuthContext } from '../../context/AuthContext';
 import api from '../../config/api';
 
@@ -16,7 +22,7 @@ export default function StaffScanPage() {
     const { user, loading: authLoading } = useContext(AuthContext);
     const videoRef = useRef(null);
     const canvasRef = useRef(null);
-    const scannerRef = useRef(null);
+    const scannerRef = useRef(null); // Assuming this might be used for a library if standard getUserMedia wasn't enough, but sticking to manual implementation per original code
 
     const [scanMode, setScanMode] = useState('meal'); // 'meal' or 'event'
     const [eventId, setEventId] = useState('');
@@ -28,12 +34,12 @@ export default function StaffScanPage() {
     const [manualCode, setManualCode] = useState('');
     const [cameraError, setCameraError] = useState(null);
 
+    // Redirect logic
     useEffect(() => {
         if (!authLoading && !user) {
             router.push('/login');
             return;
         }
-        // Check if user has staff/admin role
         if (user && !['staff', 'admin', 'faculty'].includes(user.role)) {
             router.push('/dashboard');
         }
@@ -79,33 +85,29 @@ export default function StaffScanPage() {
             setResult(null);
 
             let response;
+            let successMessage = '';
+            let details = null;
 
             if (scanMode === 'meal') {
-                // Validate meal reservation
                 response = await api.post('/meals/reservations/use', { qr_code: qrCode });
-                setResult({
-                    type: 'success',
-                    title: '✓ Meal Validated',
-                    message: `Reservation confirmed for ${response.data.data?.user?.name || 'User'}`,
-                    details: response.data.data
-                });
+                successMessage = `Reservation confirmed for ${response.data.data?.user?.name || 'User'}`;
+                details = response.data.data;
             } else {
-                // Event check-in
                 if (!eventId) {
-                    setError('Please enter an event ID first');
-                    setProcessing(false);
-                    return;
+                    throw new Error('Please enter an Event ID first');
                 }
                 response = await api.post(`/events/${eventId}/checkin`, { qr_code: qrCode });
-                setResult({
-                    type: 'success',
-                    title: '✓ Check-in Successful',
-                    message: `${response.data.data?.attendee?.name || 'Attendee'} checked in`,
-                    details: response.data.data
-                });
+                successMessage = `${response.data.data?.attendee?.name || 'Attendee'} checked in`;
+                details = response.data.data;
             }
 
-            // Add to history
+            setResult({
+                type: 'success',
+                title: 'Check-in Successful',
+                message: successMessage,
+                details
+            });
+
             setScanHistory(prev => [{
                 id: Date.now(),
                 qrCode: qrCode.substring(0, 20) + '...',
@@ -114,18 +116,16 @@ export default function StaffScanPage() {
                 time: new Date().toLocaleTimeString()
             }, ...prev.slice(0, 9)]);
 
-            // Auto-clear result after delay
-            setTimeout(() => {
-                setResult(null);
-            }, 3000);
+            // Clear result after 3s
+            setTimeout(() => setResult(null), 3000);
 
         } catch (err) {
             console.error('Scan error:', err);
-            const errorMsg = err.response?.data?.message || 'Validation failed';
+            const errorMsg = err.response?.data?.message || err.message || 'Validation failed';
 
             setResult({
                 type: 'error',
-                title: '✗ Validation Failed',
+                title: 'Validation Failed',
                 message: errorMsg
             });
 
@@ -138,9 +138,7 @@ export default function StaffScanPage() {
                 time: new Date().toLocaleTimeString()
             }, ...prev.slice(0, 9)]);
 
-            setTimeout(() => {
-                setResult(null);
-            }, 3000);
+            setTimeout(() => setResult(null), 3000);
         } finally {
             setProcessing(false);
         }
@@ -154,453 +152,199 @@ export default function StaffScanPage() {
         }
     };
 
-    if (authLoading) {
-        return (
-            <>
-                <Head><title>QR Scanner - Smart Campus</title></Head>
-                <Navbar />
-                <div style={styles.loadingContainer}>
-                    <div style={styles.spinner}></div>
-                    <p>Loading...</p>
-                </div>
-            </>
-        );
-    }
+    if (authLoading || !user) return null;
 
     return (
-        <>
+        <DashboardLayout user={user}>
             <Head>
-                <title>QR Scanner - Staff Portal</title>
+                <title>QR Scanner | Staff Portal</title>
             </Head>
-            <Navbar />
 
-            <div style={styles.container}>
+            <div className="max-w-2xl mx-auto space-y-6 animate-in slide-in-from-bottom-2 duration-500">
+
                 {/* Header */}
-                <div style={styles.header}>
-                    <h1 style={styles.title}>📱 QR Scanner</h1>
-                    <p style={styles.subtitle}>Validate meal reservations and event tickets</p>
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
+                            <QrCode className="h-6 w-6 text-blue-600" />
+                            QR Scanner
+                        </h1>
+                        <p className="mt-1 text-gray-500">Validate meal reservations and event tickets</p>
+                    </div>
                 </div>
 
-                {/* Mode Toggle */}
-                <div style={styles.modeToggle}>
+                {/* Mode Selector */}
+                <div className="grid grid-cols-2 gap-4">
                     <button
                         onClick={() => setScanMode('meal')}
-                        style={scanMode === 'meal' ? styles.modeBtnActive : styles.modeBtn}
+                        className={`p-4 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all ${scanMode === 'meal'
+                                ? 'bg-blue-50 border-blue-200 text-blue-700 shadow-sm'
+                                : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
+                            }`}
                     >
-                        🍽️ Meal Scan
+                        <Utensils className={`h-6 w-6 ${scanMode === 'meal' ? 'text-blue-600' : 'text-gray-400'}`} />
+                        <span className="font-semibold">Meal Scan</span>
                     </button>
                     <button
                         onClick={() => setScanMode('event')}
-                        style={scanMode === 'event' ? styles.modeBtnActive : styles.modeBtn}
+                        className={`p-4 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all ${scanMode === 'event'
+                                ? 'bg-purple-50 border-purple-200 text-purple-700 shadow-sm'
+                                : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
+                            }`}
                     >
-                        🎫 Event Check-in
+                        <Ticket className={`h-6 w-6 ${scanMode === 'event' ? 'text-purple-600' : 'text-gray-400'}`} />
+                        <span className="font-semibold">Event Check-in</span>
                     </button>
                 </div>
 
-                {/* Event Selector (for event mode) */}
+                {/* Event ID Input */}
                 {scanMode === 'event' && (
-                    <div style={styles.eventSelector}>
-                        <label style={styles.selectorLabel}>Event ID:</label>
+                    <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm animate-in fade-in slide-in-from-top-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Target Event ID</label>
                         <input
                             type="text"
                             value={eventId}
                             onChange={(e) => setEventId(e.target.value)}
-                            placeholder="Enter Event ID"
-                            style={styles.selectorInput}
+                            placeholder="Enter Event ID to validate tickets for..."
+                            className="w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500"
                         />
                     </div>
                 )}
 
-                {/* Scanner Card */}
-                <div style={styles.scannerCard}>
+                {/* Scanner Viewport */}
+                <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden relative min-h-[320px] flex flex-col">
+
+                    {/* Camera Error */}
                     {cameraError && (
-                        <div style={styles.cameraError}>
-                            <span>📷 {cameraError}</span>
+                        <div className="absolute top-4 left-4 right-4 z-20 bg-red-50 text-red-700 p-3 rounded-lg text-sm flex items-center gap-2 border border-red-100">
+                            <AlertCircle className="h-4 w-4" />
+                            {cameraError}
                         </div>
                     )}
 
+                    {/* Scan Result Overlay */}
                     {result && (
-                        <div style={{
-                            ...styles.resultBox,
-                            backgroundColor: result.type === 'success' ? '#D1FAE5' : '#FEE2E2',
-                            borderColor: result.type === 'success' ? '#10B981' : '#EF4444'
-                        }}>
-                            <div style={styles.resultIcon}>
-                                {result.type === 'success' ? '✓' : '✗'}
+                        <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/95 backdrop-blur-sm animate-in fade-in duration-200">
+                            <div className="text-center p-6">
+                                <div className={`inline-flex items-center justify-center p-4 rounded-full mb-4 ${result.type === 'success' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
+                                    }`}>
+                                    {result.type === 'success' ? <CheckCircle className="h-10 w-10" /> : <X className="h-10 w-10" />}
+                                </div>
+                                <h3 className={`text-xl font-bold mb-2 ${result.type === 'success' ? 'text-green-800' : 'text-red-800'
+                                    }`}>
+                                    {result.title}
+                                </h3>
+                                <p className="text-gray-600 max-w-xs mx-auto">
+                                    {result.message}
+                                </p>
                             </div>
-                            <h3 style={{
-                                ...styles.resultTitle,
-                                color: result.type === 'success' ? '#065F46' : '#991B1B'
-                            }}>
-                                {result.title}
-                            </h3>
-                            <p style={styles.resultMessage}>{result.message}</p>
                         </div>
                     )}
 
-                    {processing && (
-                        <div style={styles.processingOverlay}>
-                            <div style={styles.spinner}></div>
-                            <p>Validating...</p>
-                        </div>
-                    )}
-
-                    {/* Camera Controls */}
-                    <div style={styles.cameraControls}>
-                        {!scanning ? (
-                            <button onClick={startCamera} style={styles.startCameraBtn}>
-                                📷 Start Camera
-                            </button>
-                        ) : (
-                            <button onClick={stopCamera} style={styles.stopCameraBtn}>
-                                ⏹️ Stop Camera
-                            </button>
-                        )}
-                    </div>
-
-                    {/* Video Preview */}
-                    {scanning && (
-                        <div style={styles.videoContainer}>
+                    {/* Camera Feed */}
+                    {scanning ? (
+                        <div className="relative flex-1 bg-black">
                             <video
                                 ref={videoRef}
                                 autoPlay
                                 playsInline
-                                style={styles.video}
+                                className="w-full h-full object-cover absolute inset-0"
                             />
-                            <canvas ref={canvasRef} style={{ display: 'none' }} />
+                            {/* Scanning Guide Overlay */}
+                            <div className="absolute inset-0 border-[40px] border-black/50 z-10 pointer-events-none">
+                                <div className="w-full h-full border-2 border-white/50 rounded-lg relative">
+                                    <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-blue-500 -mt-1 -ml-1"></div>
+                                    <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-blue-500 -mt-1 -mr-1"></div>
+                                    <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-blue-500 -mb-1 -ml-1"></div>
+                                    <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-blue-500 -mb-1 -mr-1"></div>
+                                </div>
+                            </div>
+                            <button
+                                onClick={stopCamera}
+                                className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 bg-red-600 text-white px-6 py-2 rounded-full shadow-lg font-medium hover:bg-red-700 transition-colors"
+                            >
+                                Stop Camera
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 p-8 text-center text-gray-500">
+                            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                                <Camera className="h-8 w-8 text-gray-400" />
+                            </div>
+                            <p className="mb-6">Camera is currently off</p>
+                            <button
+                                onClick={startCamera}
+                                className="btn-primary-gradient px-6 py-3 flex items-center gap-2"
+                            >
+                                <Camera className="h-5 w-5" />
+                                Start Scanner
+                            </button>
                         </div>
                     )}
                 </div>
 
                 {/* Manual Entry */}
-                <div style={styles.manualSection}>
-                    <h3 style={styles.manualTitle}>Manual QR Entry</h3>
-                    <form onSubmit={handleManualSubmit} style={styles.manualForm}>
+                <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                    <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 flex items-center gap-2">
+                        <Zap className="h-4 w-4 text-yellow-500" />
+                        Manual Entry
+                    </h3>
+                    <form onSubmit={handleManualSubmit} className="flex gap-2">
                         <input
                             type="text"
                             value={manualCode}
                             onChange={(e) => setManualCode(e.target.value)}
-                            placeholder="Paste or type QR code content"
-                            style={styles.manualInput}
+                            placeholder="Paste or type QR content..."
+                            className="flex-1 rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                         />
-                        <button type="submit" style={styles.manualSubmit} disabled={processing}>
+                        <button
+                            type="submit"
+                            disabled={processing}
+                            className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-black font-medium disabled:opacity-50"
+                        >
                             Validate
                         </button>
                     </form>
                 </div>
 
-                {/* Error Display */}
-                {error && (
-                    <div style={styles.errorAlert}>
-                        <span>⚠️ {error}</span>
-                        <button onClick={() => setError(null)} style={styles.alertClose}>×</button>
-                    </div>
-                )}
-
-                {/* Scan History */}
+                {/* History */}
                 {scanHistory.length > 0 && (
-                    <div style={styles.historySection}>
-                        <h3 style={styles.historyTitle}>Recent Scans</h3>
-                        <div style={styles.historyList}>
+                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                        <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
+                            <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                                <History className="h-4 w-4 text-gray-500" />
+                                Recent Activity
+                            </h3>
+                        </div>
+                        <div className="divide-y divide-gray-100">
                             {scanHistory.map(scan => (
-                                <div key={scan.id} style={{
-                                    ...styles.historyItem,
-                                    borderLeftColor: scan.status === 'success' ? '#10B981' : '#EF4444'
-                                }}>
-                                    <span style={styles.historyType}>
-                                        {scan.type === 'meal' ? '🍽️' : '🎫'}
-                                    </span>
-                                    <div style={styles.historyInfo}>
-                                        <span style={styles.historyCode}>{scan.qrCode}</span>
-                                        <span style={styles.historyTime}>{scan.time}</span>
+                                <div key={scan.id} className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`p-2 rounded-lg ${scan.status === 'success' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
+                                            }`}>
+                                            {scan.type === 'meal' ? <Utensils className="h-4 w-4" /> : <Ticket className="h-4 w-4" />}
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-medium text-gray-900 font-mono">
+                                                {scan.qrCode}
+                                            </p>
+                                            <p className="text-xs text-gray-500">{scan.time}</p>
+                                        </div>
                                     </div>
-                                    <span style={{
-                                        ...styles.historyStatus,
-                                        color: scan.status === 'success' ? '#10B981' : '#EF4444'
-                                    }}>
-                                        {scan.status === 'success' ? '✓' : '✗'}
-                                    </span>
+                                    <div>
+                                        {scan.status === 'success' ? (
+                                            <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full">Success</span>
+                                        ) : (
+                                            <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded-full">Failed</span>
+                                        )}
+                                    </div>
                                 </div>
                             ))}
                         </div>
                     </div>
                 )}
-            </div>
 
-            <style jsx global>{`
-                @keyframes spin {
-                    0% { transform: rotate(0deg); }
-                    100% { transform: rotate(360deg); }
-                }
-            `}</style>
-        </>
+            </div>
+        </DashboardLayout>
     );
 }
-
-const styles = {
-    container: {
-        maxWidth: '600px',
-        margin: '0 auto',
-        padding: '24px',
-        fontFamily: 'system-ui, -apple-system, sans-serif'
-    },
-    loadingContainer: {
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '60vh',
-        color: '#6B7280'
-    },
-    spinner: {
-        width: '40px',
-        height: '40px',
-        border: '3px solid #E5E7EB',
-        borderTop: '3px solid #10B981',
-        borderRadius: '50%',
-        animation: 'spin 1s linear infinite',
-        marginBottom: '16px'
-    },
-    header: {
-        textAlign: 'center',
-        marginBottom: '24px'
-    },
-    title: {
-        fontSize: '28px',
-        fontWeight: '700',
-        color: '#111827',
-        margin: 0
-    },
-    subtitle: {
-        fontSize: '16px',
-        color: '#6B7280',
-        marginTop: '4px'
-    },
-    modeToggle: {
-        display: 'flex',
-        gap: '8px',
-        marginBottom: '20px'
-    },
-    modeBtn: {
-        flex: 1,
-        padding: '14px',
-        backgroundColor: '#F3F4F6',
-        border: 'none',
-        borderRadius: '12px',
-        fontSize: '15px',
-        fontWeight: '500',
-        cursor: 'pointer',
-        color: '#6B7280'
-    },
-    modeBtnActive: {
-        flex: 1,
-        padding: '14px',
-        backgroundColor: '#10B981',
-        border: 'none',
-        borderRadius: '12px',
-        fontSize: '15px',
-        fontWeight: '600',
-        cursor: 'pointer',
-        color: 'white'
-    },
-    eventSelector: {
-        marginBottom: '20px'
-    },
-    selectorLabel: {
-        display: 'block',
-        fontSize: '14px',
-        fontWeight: '500',
-        color: '#374151',
-        marginBottom: '8px'
-    },
-    selectorInput: {
-        width: '100%',
-        padding: '12px 16px',
-        border: '1px solid #E5E7EB',
-        borderRadius: '10px',
-        fontSize: '15px',
-        boxSizing: 'border-box'
-    },
-    scannerCard: {
-        backgroundColor: 'white',
-        borderRadius: '20px',
-        padding: '24px',
-        boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
-        marginBottom: '24px',
-        position: 'relative',
-        minHeight: '200px'
-    },
-    cameraError: {
-        padding: '20px',
-        backgroundColor: '#FEF3C7',
-        borderRadius: '10px',
-        textAlign: 'center',
-        marginBottom: '16px'
-    },
-    cameraControls: {
-        display: 'flex',
-        justifyContent: 'center',
-        marginBottom: '16px'
-    },
-    startCameraBtn: {
-        padding: '14px 32px',
-        backgroundColor: '#10B981',
-        color: 'white',
-        border: 'none',
-        borderRadius: '12px',
-        fontSize: '16px',
-        fontWeight: '600',
-        cursor: 'pointer'
-    },
-    stopCameraBtn: {
-        padding: '14px 32px',
-        backgroundColor: '#EF4444',
-        color: 'white',
-        border: 'none',
-        borderRadius: '12px',
-        fontSize: '16px',
-        fontWeight: '600',
-        cursor: 'pointer'
-    },
-    videoContainer: {
-        borderRadius: '12px',
-        overflow: 'hidden'
-    },
-    video: {
-        width: '100%',
-        maxHeight: '300px',
-        objectFit: 'cover',
-        borderRadius: '12px'
-    },
-    resultBox: {
-        textAlign: 'center',
-        padding: '40px 20px',
-        borderRadius: '16px',
-        border: '2px solid',
-        marginBottom: '16px'
-    },
-    resultIcon: {
-        fontSize: '48px',
-        marginBottom: '16px'
-    },
-    resultTitle: {
-        fontSize: '24px',
-        fontWeight: '700',
-        marginBottom: '8px'
-    },
-    resultMessage: {
-        fontSize: '16px',
-        color: '#374151'
-    },
-    processingOverlay: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(255,255,255,0.9)',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderRadius: '20px',
-        zIndex: 10
-    },
-    manualSection: {
-        backgroundColor: 'white',
-        borderRadius: '16px',
-        padding: '20px',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.04)',
-        marginBottom: '24px'
-    },
-    manualTitle: {
-        fontSize: '16px',
-        fontWeight: '600',
-        marginBottom: '12px',
-        color: '#111827'
-    },
-    manualForm: {
-        display: 'flex',
-        gap: '12px'
-    },
-    manualInput: {
-        flex: 1,
-        padding: '12px 16px',
-        border: '1px solid #E5E7EB',
-        borderRadius: '10px',
-        fontSize: '14px'
-    },
-    manualSubmit: {
-        padding: '12px 24px',
-        backgroundColor: '#3B82F6',
-        color: 'white',
-        border: 'none',
-        borderRadius: '10px',
-        fontSize: '14px',
-        fontWeight: '600',
-        cursor: 'pointer'
-    },
-    errorAlert: {
-        backgroundColor: '#FEF2F2',
-        color: '#DC2626',
-        padding: '12px 16px',
-        borderRadius: '10px',
-        marginBottom: '16px',
-        display: 'flex',
-        justifyContent: 'space-between'
-    },
-    alertClose: {
-        background: 'none',
-        border: 'none',
-        fontSize: '18px',
-        cursor: 'pointer'
-    },
-    historySection: {
-        backgroundColor: 'white',
-        borderRadius: '16px',
-        padding: '20px',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.04)'
-    },
-    historyTitle: {
-        fontSize: '16px',
-        fontWeight: '600',
-        marginBottom: '16px',
-        color: '#111827'
-    },
-    historyList: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '8px'
-    },
-    historyItem: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px',
-        padding: '12px',
-        backgroundColor: '#F9FAFB',
-        borderRadius: '8px',
-        borderLeft: '3px solid'
-    },
-    historyType: {
-        fontSize: '20px'
-    },
-    historyInfo: {
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '2px'
-    },
-    historyCode: {
-        fontSize: '13px',
-        fontFamily: 'monospace',
-        color: '#374151'
-    },
-    historyTime: {
-        fontSize: '12px',
-        color: '#9CA3AF'
-    },
-    historyStatus: {
-        fontSize: '18px',
-        fontWeight: '700'
-    }
-};

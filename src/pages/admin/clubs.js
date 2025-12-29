@@ -1,10 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
-import Navbar from '../../components/Navbar';
-import { useAuth } from '../../context/AuthContext';
-import clubService from '../../services/clubService';
 import { useRouter } from 'next/router';
-import { Users, MapPin, Calendar, Mail, Search, Plus, Trash2, Edit } from 'lucide-react';
+import {
+    Users,
+    MapPin,
+    Calendar,
+    Mail,
+    Search,
+    Plus,
+    Trash2,
+    Edit,
+    X
+} from 'lucide-react';
+import clubService from '../../services/clubService';
+import DashboardLayout from '../../components/layout/DashboardLayout';
+import { useAuth } from '../../context/AuthContext';
 
 export default function ClubManagement() {
     const { user, loading: authLoading } = useAuth();
@@ -153,32 +163,35 @@ export default function ClubManagement() {
         return colors[cat] || colors.general;
     };
 
-    if (authLoading) return <div className="p-8 text-center">Loading...</div>;
+    if (authLoading || !user || user.role !== 'admin') return null;
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <DashboardLayout user={user}>
             <Head>
                 <title>Club Management | Admin | Smart Campus</title>
             </Head>
-            <Navbar userData={user} />
 
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+            <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-500">
+                {/* Header */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">🏢 Club Management</h1>
-                        <p className="text-gray-500 mt-1">Manage student organizations and clubs</p>
+                        <h1 className="text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
+                            <Users className="h-6 w-6 text-blue-600" />
+                            Club Management
+                        </h1>
+                        <p className="mt-1 text-gray-500">Manage student organizations and clubs</p>
                     </div>
                     <button
                         onClick={handleCreateClick}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-medium transition-colors"
+                        className="btn-primary-gradient flex items-center justify-center gap-2"
                     >
-                        <Plus className="w-5 h-5" />
+                        <Plus className="h-4 w-4" />
                         Create New Club
                     </button>
                 </div>
 
                 {/* Filters */}
-                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-6 flex flex-col md:flex-row gap-4">
+                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col md:flex-row gap-4">
                     <div className="flex-1 relative">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                         <input
@@ -202,18 +215,22 @@ export default function ClubManagement() {
                 </div>
 
                 {/* Clubs List */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                     {loading ? (
-                        <div className="p-8 text-center text-gray-500">Loading clubs...</div>
+                        <div className="p-12 text-center text-gray-500">
+                            <div className="w-8 h-8 border-2 border-gray-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
+                            Loading clubs...
+                        </div>
                     ) : clubs.length === 0 ? (
                         <div className="p-12 text-center text-gray-500">
-                            <div className="mb-3 text-4xl">📭</div>
-                            No clubs found matching your criteria.
+                            <Users className="h-10 w-10 text-gray-300 mx-auto mb-3" />
+                            <h3 className="text-lg font-medium text-gray-900">No clubs found</h3>
+                            <p className="text-gray-500 mt-1">Try adjusting your search criteria</p>
                         </div>
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="w-full text-left">
-                                <thead className="bg-gray-50 text-gray-600 text-sm font-semibold uppercase tracking-wider">
+                                <thead className="bg-gray-50 text-gray-600 text-xs font-semibold uppercase tracking-wider">
                                     <tr>
                                         <th className="px-6 py-4">Club Name</th>
                                         <th className="px-6 py-4">Category</th>
@@ -223,30 +240,30 @@ export default function ClubManagement() {
                                         <th className="px-6 py-4 text-right">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-gray-200">
+                                <tbody className="divide-y divide-gray-100">
                                     {clubs.map(club => (
                                         <tr key={club.id} className="hover:bg-gray-50 transition-colors">
                                             <td className="px-6 py-4">
-                                                <div className="font-medium text-gray-900">{club.name}</div>
+                                                <div className="font-bold text-gray-900">{club.name}</div>
                                                 <div className="text-sm text-gray-500 truncate max-w-xs">{club.description}</div>
                                             </td>
                                             <td className="px-6 py-4">
-                                                <span className={`px-2 py-1 rounded-full text-xs font-semibold uppercase ${getCategoryBadgeClass(club.category)}`}>
+                                                <span className={`px-2.5 py-1 rounded-full text-xs font-semibold uppercase ${getCategoryBadgeClass(club.category)}`}>
                                                     {club.category}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 text-sm">
-                                                <div className="text-gray-900">Pres: {club.president ? `${club.president.first_name} ${club.president.last_name}` : 'N/A'}</div>
+                                                <div className="text-gray-900 font-medium">Pres: {club.president ? `${club.president.first_name} ${club.president.last_name}` : 'N/A'}</div>
                                                 <div className="text-gray-500">Adv: {club.advisor ? `${club.advisor.first_name} ${club.advisor.last_name}` : 'N/A'}</div>
                                             </td>
                                             <td className="px-6 py-4 text-sm text-gray-600">
-                                                <div className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {club.location || 'N/A'}</div>
-                                                <div className="flex items-center gap-1 mt-1"><Calendar className="w-3 h-3" /> {club.meeting_schedule || 'N/A'}</div>
+                                                <div className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-gray-400" /> {club.location || 'N/A'}</div>
+                                                <div className="flex items-center gap-1.5 mt-1"><Calendar className="w-3.5 h-3.5 text-gray-400" /> {club.meeting_schedule || 'N/A'}</div>
                                             </td>
                                             <td className="px-6 py-4 text-sm">
-                                                <div className="flex items-center gap-1">
+                                                <div className="flex items-center gap-1.5">
                                                     <Users className="w-4 h-4 text-gray-400" />
-                                                    <span>{club.member_count}</span>
+                                                    <span className="font-medium text-gray-900">{club.member_count}</span>
                                                     {club.max_members && <span className="text-gray-400">/ {club.max_members}</span>}
                                                 </div>
                                             </td>
@@ -254,14 +271,14 @@ export default function ClubManagement() {
                                                 <div className="flex items-center justify-end gap-2">
                                                     <button
                                                         onClick={() => handleEditClick(club)}
-                                                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                        className="p-2 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
                                                         title="Edit"
                                                     >
                                                         <Edit className="w-4 h-4" />
                                                     </button>
                                                     <button
                                                         onClick={() => handleDelete(club.id)}
-                                                        className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                        className="p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
                                                         title="Delete"
                                                     >
                                                         <Trash2 className="w-4 h-4" />
@@ -275,156 +292,159 @@ export default function ClubManagement() {
                         </div>
                     )}
                 </div>
-            </div>
 
-            {/* Modal */}
-            {showModal && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-                        <div className="p-6 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10">
-                            <h2 className="text-xl font-bold text-gray-900">
-                                {isEditing ? 'Edit Club' : 'Create New Club'}
-                            </h2>
-                            <button
-                                onClick={() => setShowModal(false)}
-                                className="text-gray-400 hover:text-gray-600 text-2xl"
-                            >
-                                &times;
-                            </button>
+                {/* Modal */}
+                {showModal && (
+                    <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+                        <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                            <div className="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity" onClick={() => setShowModal(false)} aria-hidden="true"></div>
+                            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+                            <div className="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+                                <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                                    <div className="flex justify-between items-start mb-5">
+                                        <h3 className="text-lg leading-6 font-bold text-gray-900" id="modal-title">
+                                            {isEditing ? 'Edit Club' : 'Create New Club'}
+                                        </h3>
+                                        <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-500">
+                                            <X className="h-5 w-5" />
+                                        </button>
+                                    </div>
+
+                                    <form onSubmit={handleSave} className="space-y-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="col-span-2">
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Club Name</label>
+                                                <input
+                                                    required
+                                                    type="text"
+                                                    value={formData.name}
+                                                    onChange={e => setFormData({ ...formData, name: e.target.value })}
+                                                    className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                                />
+                                            </div>
+
+                                            <div className="col-span-2">
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                                                <textarea
+                                                    rows={3}
+                                                    value={formData.description}
+                                                    onChange={e => setFormData({ ...formData, description: e.target.value })}
+                                                    className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                                                <select
+                                                    value={formData.category}
+                                                    onChange={e => setFormData({ ...formData, category: e.target.value })}
+                                                    className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 capitalize"
+                                                >
+                                                    {categories.map(cat => (
+                                                        <option key={cat} value={cat}>{cat}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Max Members</label>
+                                                <input
+                                                    type="number"
+                                                    value={formData.max_members}
+                                                    onChange={e => setFormData({ ...formData, max_members: e.target.value })}
+                                                    className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                                    placeholder="Optional"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">President ID</label>
+                                                <input
+                                                    type="text"
+                                                    value={formData.president_id}
+                                                    onChange={e => setFormData({ ...formData, president_id: e.target.value })}
+                                                    className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                                    placeholder="User UUID"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Advisor ID</label>
+                                                <input
+                                                    type="text"
+                                                    value={formData.advisor_id}
+                                                    onChange={e => setFormData({ ...formData, advisor_id: e.target.value })}
+                                                    className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                                    placeholder="User UUID"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                                                <input
+                                                    type="text"
+                                                    value={formData.location}
+                                                    onChange={e => setFormData({ ...formData, location: e.target.value })}
+                                                    className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Meeting Schedule</label>
+                                                <input
+                                                    type="text"
+                                                    value={formData.meeting_schedule}
+                                                    onChange={e => setFormData({ ...formData, meeting_schedule: e.target.value })}
+                                                    className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                                    placeholder="e.g. Fridays 15:00"
+                                                />
+                                            </div>
+
+                                            <div className="col-span-2">
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Contact Email</label>
+                                                <input
+                                                    type="email"
+                                                    value={formData.contact_email}
+                                                    onChange={e => setFormData({ ...formData, contact_email: e.target.value })}
+                                                    className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                                />
+                                            </div>
+
+                                            <div className="col-span-2">
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
+                                                <input
+                                                    type="text"
+                                                    value={formData.image_url}
+                                                    onChange={e => setFormData({ ...formData, image_url: e.target.value })}
+                                                    className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                                    placeholder="https://..."
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="pt-4 flex justify-end gap-3 border-t border-gray-100">
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowModal(false)}
+                                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                type="submit"
+                                                disabled={saving}
+                                                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                                            >
+                                                {saving ? 'Saving...' : isEditing ? 'Update Club' : 'Create Club'}
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
                         </div>
-
-                        <form onSubmit={handleSave} className="p-6 space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="col-span-2">
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Club Name</label>
-                                    <input
-                                        required
-                                        type="text"
-                                        value={formData.name}
-                                        onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                    />
-                                </div>
-
-                                <div className="col-span-2">
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                                    <textarea
-                                        rows={3}
-                                        value={formData.description}
-                                        onChange={e => setFormData({ ...formData, description: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                                    <select
-                                        value={formData.category}
-                                        onChange={e => setFormData({ ...formData, category: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none capitalize"
-                                    >
-                                        {categories.map(cat => (
-                                            <option key={cat} value={cat}>{cat}</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Max Members</label>
-                                    <input
-                                        type="number"
-                                        value={formData.max_members}
-                                        onChange={e => setFormData({ ...formData, max_members: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                        placeholder="Optional"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">President ID</label>
-                                    <input
-                                        type="text"
-                                        value={formData.president_id}
-                                        onChange={e => setFormData({ ...formData, president_id: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                        placeholder="User UUID"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Advisor ID</label>
-                                    <input
-                                        type="text"
-                                        value={formData.advisor_id}
-                                        onChange={e => setFormData({ ...formData, advisor_id: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                        placeholder="User UUID"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
-                                    <input
-                                        type="text"
-                                        value={formData.location}
-                                        onChange={e => setFormData({ ...formData, location: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Meeting Schedule</label>
-                                    <input
-                                        type="text"
-                                        value={formData.meeting_schedule}
-                                        onChange={e => setFormData({ ...formData, meeting_schedule: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                        placeholder="e.g. Fridays 15:00"
-                                    />
-                                </div>
-
-                                <div className="col-span-2">
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Contact Email</label>
-                                    <input
-                                        type="email"
-                                        value={formData.contact_email}
-                                        onChange={e => setFormData({ ...formData, contact_email: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                    />
-                                </div>
-
-                                <div className="col-span-2">
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
-                                    <input
-                                        type="text"
-                                        value={formData.image_url}
-                                        onChange={e => setFormData({ ...formData, image_url: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                        placeholder="https://..."
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="flex items-center justify-end gap-4 mt-8 pt-4 border-t border-gray-100">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowModal(false)}
-                                    className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={saving}
-                                    className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow-sm transition-all disabled:opacity-50"
-                                >
-                                    {saving ? 'Saving...' : isEditing ? 'Update Club' : 'Create Club'}
-                                </button>
-                            </div>
-                        </form>
                     </div>
-                </div>
-            )}
-        </div>
+                )}
+            </div>
+        </DashboardLayout>
     );
 }

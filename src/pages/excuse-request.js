@@ -7,13 +7,22 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { useAuth } from '../context/AuthContext';
-import Navbar from '../components/Navbar';
+import DashboardLayout from '../components/layout/DashboardLayout';
 import api from '../config/api';
 import FeedbackMessage from '../components/FeedbackMessage';
+import {
+    FileText,
+    Upload,
+    Calendar,
+    Clock,
+    AlertCircle,
+    CheckCircle2,
+    History
+} from 'lucide-react';
 
 export default function ExcuseRequest() {
     const router = useRouter();
-    const { user, loading: authLoading } = useAuth();
+    const { user, logout, loading: authLoading } = useAuth();
     const [sessions, setSessions] = useState([]);
     const [loadingSessions, setLoadingSessions] = useState(true);
 
@@ -39,15 +48,10 @@ export default function ExcuseRequest() {
 
             try {
                 setLoadingSessions(true);
-                // Fetch last 30 days history? default history endpoint returns all or paginated.
+                // Fetch attendance history
                 const response = await api.get('/attendance/history');
 
                 if (response.data.success) {
-                    // Flatten history to get sessions
-                    // Assuming structure: { data: { history: [...] } }
-                    // history items: { session: {...}, status: ... }
-                    // We want sessions where status is 'absent' or 'late' ideally, but maybe even 'present' if checking out early?
-                    // Let's list all recent sessions.
                     setSessions(response.data.data.history || []);
                 }
             } catch (err) {
@@ -91,8 +95,6 @@ export default function ExcuseRequest() {
                 data.append('document', file);
             }
 
-            // Need to set content-type for axios or let it auto-detect?
-            // Axios auto-detects multipart if data is FormData
             const response = await api.post('/excuses', data);
 
             if (response.data.success) {
@@ -103,7 +105,11 @@ export default function ExcuseRequest() {
                 // Reset form
                 setFormData({ session_id: '', reason: '' });
                 setFile(null);
-                // Clear file input manually if ref used, or just let React re-render
+
+                // Optional: redirect to history after short delay
+                setTimeout(() => {
+                    // router.push('/my-excuses'); // If this page existed
+                }, 2000);
             }
         } catch (err) {
             console.error('Submit error:', err);
@@ -116,203 +122,161 @@ export default function ExcuseRequest() {
         }
     };
 
-    if (authLoading) return <div>Loading...</div>;
+    if (authLoading) return null;
     if (!user || user.role !== 'student') return null;
 
     return (
-        <>
+        <DashboardLayout user={user} onLogout={logout}>
             <Head>
-                <title>Submit Excuse - Smart Campus</title>
+                <title>Submit Excuse | Smart Campus</title>
             </Head>
 
-            <Navbar />
-
-            <div className="page-container">
-                <div className="form-card">
-                    <h1>Submit Excuse Request</h1>
-                    <p className="subtitle">If you missed a class, you can submit an excuse request here.</p>
-
-                    {message.text && (
-                        <FeedbackMessage
-                            type={message.type}
-                            message={message.text}
-                            onClose={() => setMessage({ type: '', text: '' })}
-                        />
-                    )}
-
-                    <form onSubmit={handleSubmit} className="excuse-form">
-                        <div className="form-group">
-                            <label htmlFor="session">Select Session *</label>
-                            {loadingSessions ? (
-                                <p className="loading-text">Loading sessions...</p>
-                            ) : (
-                                <select
-                                    id="session"
-                                    value={formData.session_id}
-                                    onChange={(e) => setFormData({ ...formData, session_id: e.target.value })}
-                                    className="form-control"
-                                    required
-                                >
-                                    <option value="">-- Select a Session --</option>
-                                    {sessions.map((item) => {
-                                        const session = item.session;
-                                        const date = new Date(session.start_time).toLocaleDateString();
-                                        const courseName = session.section?.course?.name || 'Unknown Course';
-                                        return (
-                                            <option key={session.id} value={session.id}>
-                                                {date} - {courseName} ({item.status})
-                                            </option>
-                                        );
-                                    })}
-                                </select>
-                            )}
-                        </div>
-
-                        <div className="form-group">
-                            <label htmlFor="reason">Reason *</label>
-                            <textarea
-                                id="reason"
-                                value={formData.reason}
-                                onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-                                className="form-control"
-                                rows="4"
-                                placeholder="Explain why you missed the class..."
-                                required
-                            />
-                        </div>
-
-                        <div className="form-group">
-                            <label htmlFor="document">Supporting Document (PDF, Image)</label>
-                            <input
-                                type="file"
-                                id="document"
-                                accept=".pdf,.jpg,.jpeg,.png"
-                                onChange={handleFileChange}
-                                className="form-control-file"
-                            />
-                            <small className="form-text">Optional. Max 10MB.</small>
-                        </div>
-
-                        <button
-                            type="submit"
-                            className="btn-submit"
-                            disabled={submitting}
-                        >
-                            {submitting ? 'Submitting...' : 'Submit Request'}
-                        </button>
-                    </form>
-
-                    <div className="history-link">
-                        <a href="/my-excuses">View My Requests History</a>
+            <div className="max-w-3xl mx-auto space-y-6 animate-in slide-in-from-bottom-2 duration-500">
+                {/* Header */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
+                            <FileText className="h-6 w-6 text-indigo-600" />
+                            Submit Excuse Request
+                        </h1>
+                        <p className="mt-1 text-gray-500">Provide a reason and documentation for missed classes</p>
                     </div>
                 </div>
+
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div className="p-6 md:p-8">
+                        {message.text && (
+                            <FeedbackMessage
+                                type={message.type}
+                                message={message.text}
+                                onClose={() => setMessage({ type: '', text: '' })}
+                            />
+                        )}
+
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                            {/* Session Selection */}
+                            <div className="space-y-2">
+                                <label htmlFor="session" className="block text-sm font-semibold text-gray-700">
+                                    Select Missed Session <span className="text-red-500">*</span>
+                                </label>
+                                {loadingSessions ? (
+                                    <div className="p-4 bg-gray-50 rounded-lg text-gray-500 text-sm flex items-center gap-2">
+                                        <div className="w-4 h-4 border-2 border-gray-300 border-t-indigo-600 rounded-full animate-spin"></div>
+                                        Loading your sessions...
+                                    </div>
+                                ) : (
+                                    <div className="relative">
+                                        <select
+                                            id="session"
+                                            value={formData.session_id}
+                                            onChange={(e) => setFormData({ ...formData, session_id: e.target.value })}
+                                            className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 py-3 pr-10"
+                                            required
+                                        >
+                                            <option value="">-- Select a Session --</option>
+                                            {sessions.map((item) => {
+                                                const session = item.session;
+                                                const date = new Date(session.start_time).toLocaleDateString();
+                                                const time = new Date(session.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                                                const courseName = session.section?.course?.name || 'Unknown Course';
+                                                const courseCode = session.section?.course?.code || 'N/A';
+
+                                                return (
+                                                    <option key={session.id} value={session.id}>
+                                                        {date} {time} — {courseCode}: {courseName} ({item.status})
+                                                    </option>
+                                                );
+                                            })}
+                                        </select>
+                                    </div>
+                                )}
+                                <p className="text-xs text-gray-500 flex items-center gap-1">
+                                    <History className="h-3 w-3" />
+                                    Showing recent attendance history
+                                </p>
+                            </div>
+
+                            {/* Reason */}
+                            <div className="space-y-2">
+                                <label htmlFor="reason" className="block text-sm font-semibold text-gray-700">
+                                    Reason for Absence <span className="text-red-500">*</span>
+                                </label>
+                                <textarea
+                                    id="reason"
+                                    value={formData.reason}
+                                    onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
+                                    className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 min-h-[120px]"
+                                    placeholder="Please explain why you missed the class in detail..."
+                                    required
+                                />
+                            </div>
+
+                            {/* File Upload */}
+                            <div className="space-y-2">
+                                <label htmlFor="document" className="block text-sm font-semibold text-gray-700">
+                                    Supporting Document (Optional)
+                                </label>
+                                <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-indigo-500 hover:bg-indigo-50/10 transition-colors cursor-pointer relative">
+                                    <div className="space-y-1 text-center">
+                                        <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                                        <div className="flex text-sm text-gray-600 justify-center">
+                                            <label htmlFor="document-upload" className="relative cursor-pointer rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none">
+                                                <span>Upload a file</span>
+                                                <input
+                                                    id="document-upload"
+                                                    name="document-upload"
+                                                    type="file"
+                                                    className="sr-only"
+                                                    accept=".pdf,.jpg,.jpeg,.png"
+                                                    onChange={handleFileChange}
+                                                />
+                                            </label>
+                                            <p className="pl-1">or drag and drop</p>
+                                        </div>
+                                        <p className="text-xs text-gray-500">
+                                            PDF, PNG, JPG up to 10MB
+                                        </p>
+                                        {file && (
+                                            <div className="mt-4 flex items-center justify-center gap-2 text-sm text-green-600 font-medium bg-green-50 py-1 px-3 rounded-full">
+                                                <CheckCircle2 className="h-4 w-4" />
+                                                {file.name}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="pt-4 flex items-center justify-between border-t border-gray-100">
+                                <button
+                                    type="button"
+                                    onClick={() => router.back()} // Or router.push('/my-excuses') if it exists
+                                    className="px-6 py-2.5 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={submitting}
+                                    className="px-8 py-2.5 border border-transparent shadow-sm text-sm font-bold rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:-translate-y-0.5"
+                                >
+                                    {submitting ? (
+                                        <span className="flex items-center gap-2">
+                                            <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                                            Submitting...
+                                        </span>
+                                    ) : 'Submit Request'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div className="text-center">
+                    <p className="text-sm text-gray-500">
+                        Need to check status? <a href="/my-excuses" className="text-indigo-600 hover:text-indigo-800 font-medium hover:underline">View My Requests History</a>
+                    </p>
+                </div>
             </div>
-
-            <style jsx>{`
-        .page-container {
-          min-height: 100vh;
-          background-color: #f5f7fa;
-          padding: 40px 20px;
-          display: flex;
-          justify-content: center;
-        }
-
-        .form-card {
-          background: white;
-          width: 100%;
-          max-width: 600px;
-          padding: 40px;
-          border-radius: 12px;
-          box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-          height: fit-content;
-        }
-
-        h1 {
-          font-size: 1.8rem;
-          color: #2d3748;
-          margin-bottom: 10px;
-        }
-
-        .subtitle {
-          color: #718096;
-          margin-bottom: 30px;
-          font-size: 0.95rem;
-        }
-
-        .form-group {
-          margin-bottom: 25px;
-        }
-
-        label {
-          display: block;
-          margin-bottom: 8px;
-          font-weight: 600;
-          color: #4a5568;
-        }
-
-        .form-control {
-          width: 100%;
-          padding: 12px;
-          border: 1px solid #e2e8f0;
-          border-radius: 8px;
-          font-size: 1rem;
-          transition: border-color 0.2s;
-        }
-
-        .form-control:focus {
-          outline: none;
-          border-color: #667eea;
-          box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        .form-control-file {
-          padding: 10px 0;
-        }
-
-        .form-text {
-          display: block;
-          color: #a0aec0;
-          font-size: 0.85rem;
-          margin-top: 5px;
-        }
-
-        .btn-submit {
-          width: 100%;
-          background: #667eea;
-          color: white;
-          border: none;
-          padding: 14px;
-          border-radius: 8px;
-          font-size: 1.1rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: background-color 0.2s;
-        }
-
-        .btn-submit:hover:not(:disabled) {
-          background: #5a67d8;
-        }
-
-        .btn-submit:disabled {
-          background: #cbd5e0;
-          cursor: not-allowed;
-        }
-        
-        .history-link {
-          margin-top: 20px;
-          text-align: center;
-        }
-        
-        .history-link a {
-          color: #667eea;
-          text-decoration: none;
-          font-weight: 500;
-        }
-        
-        .history-link a:hover {
-          text-decoration: underline;
-        }
-      `}</style>
-        </>
+        </DashboardLayout>
     );
 }

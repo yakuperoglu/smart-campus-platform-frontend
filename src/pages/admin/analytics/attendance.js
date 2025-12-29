@@ -1,12 +1,23 @@
 import React, { useEffect, useState } from 'react';
-import Navbar from '../../../components/Navbar';
 import Head from 'next/head';
+import { useRouter } from 'next/router';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import {
+    Shield,
+    Download,
+    AlertTriangle,
+    Flag,
+    FileText,
+    Activity,
+    Check,
+    X,
+    Eye
+} from 'lucide-react';
 import analyticsService from '../../../services/analyticsService';
 import excuseService from '../../../services/excuseService';
 import socketService from '../../../services/socketService';
+import DashboardLayout from '../../../components/layout/DashboardLayout';
 import { useAuth } from '../../../context/AuthContext';
-import { useRouter } from 'next/router';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function AttendanceAnalytics() {
     const { user, loading: authLoading, token } = useAuth();
@@ -93,70 +104,126 @@ export default function AttendanceAnalytics() {
         setTimeout(() => setToast(null), 5000);
     };
 
-    if (loading) return <div className="p-loading">Loading Dashboard...</div>;
+    if (authLoading || !user || user.role !== 'admin') return null;
+
+    if (loading) {
+        return (
+            <DashboardLayout user={user}>
+                <div className="flex flex-col items-center justify-center min-h-[60vh]">
+                    <div className="w-10 h-10 border-2 border-gray-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
+                    <p className="text-gray-500">Loading Attendance Intelligence Center...</p>
+                </div>
+            </DashboardLayout>
+        );
+    }
 
     return (
-        <div className="page-container">
+        <DashboardLayout user={user}>
             <Head>
-                <title>Attendance Intelligence - Admin</title>
+                <title>Attendance Intelligence | Admin | Smart Campus</title>
             </Head>
-            <Navbar userData={user} />
 
-            <div className="content">
-                <div className="dashboard-header">
-                    <h1>🛡️ Attendance Intelligence Center</h1>
-                    <div className="export-actions">
-                        <button className="btn-export" onClick={analyticsService.exportCSV}>📄 Export CSV</button>
-                        <button className="btn-export" onClick={analyticsService.exportPDF}>📊 Export PDF</button>
+            {/* Toast Notification */}
+            {toast && (
+                <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg flex items-center gap-3 animate-in slide-in-from-right duration-300 ${toast.type === 'critical' ? 'bg-red-50 text-red-900 border-l-4 border-red-500' :
+                        toast.type === 'success' ? 'bg-green-50 text-green-900 border-l-4 border-green-500' :
+                            'bg-blue-50 text-blue-900 border-l-4 border-blue-500'
+                    }`}>
+                    <span>{toast.message}</span>
+                    <button onClick={() => setToast(null)} className="hover:opacity-70">
+                        <X className="h-4 w-4" />
+                    </button>
+                </div>
+            )}
+
+            <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-500">
+                {/* Header */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
+                            <Shield className="h-6 w-6 text-indigo-600" />
+                            Attendance Intelligence
+                        </h1>
+                        <p className="mt-1 text-gray-500">Monitor attendance, flag anomalies, and manage excuses</p>
+                    </div>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={analyticsService.exportCSV}
+                            className="bg-white text-gray-700 px-4 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 font-medium flex items-center gap-2 transition-colors"
+                        >
+                            <Download className="h-4 w-4" /> Export CSV
+                        </button>
+                        <button
+                            onClick={analyticsService.exportPDF}
+                            className="bg-white text-gray-700 px-4 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 font-medium flex items-center gap-2 transition-colors"
+                        >
+                            <Download className="h-4 w-4" /> Export PDF
+                        </button>
                     </div>
                 </div>
 
-                {/* Toast Notification */}
-                {toast && (
-                    <div className={`toast ${toast.type}`}>
-                        {toast.message}
-                        <button onClick={() => setToast(null)}>×</button>
-                    </div>
-                )}
-
-                <div className="tabs">
-                    <button className={activeTab === 'overview' ? 'active' : ''} onClick={() => setActiveTab('overview')}>Overview</button>
-                    <button className={activeTab === 'at-risk' ? 'active' : ''} onClick={() => setActiveTab('at-risk')}>⚠️ At-Risk Students</button>
-                    <button className={activeTab === 'flagged' ? 'active' : ''} onClick={() => setActiveTab('flagged')}>🚩 Spoofing Logs</button>
-                    <button className={activeTab === 'excuses' ? 'active' : ''} onClick={() => setActiveTab('excuses')}>📝 Excuse Management</button>
+                {/* Tabs */}
+                <div className="flex gap-2 border-b border-gray-200 overflow-x-auto pb-1">
+                    {[
+                        { id: 'overview', label: 'Overview', icon: Activity },
+                        { id: 'at-risk', label: 'At-Risk Students', icon: AlertTriangle },
+                        { id: 'flagged', label: 'Spoofing Logs', icon: Flag },
+                        { id: 'excuses', label: 'Excuse Management', icon: FileText }
+                    ].map(tab => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`px-4 py-2 rounded-t-lg font-medium text-sm flex items-center gap-2 transition-colors whitespace-nowrap ${activeTab === tab.id
+                                    ? 'bg-white text-indigo-600 border-b-2 border-indigo-600'
+                                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                                }`}
+                        >
+                            <tab.icon className="h-4 w-4" />
+                            {tab.label}
+                        </button>
+                    ))}
                 </div>
 
                 {activeTab === 'overview' && (
-                    <div className="tab-content">
-                        <div className="stats-grid">
-                            <div className="card">
-                                <h3>Total Attendance Records</h3>
-                                <p className="stat-value">{trends.reduce((acc, curr) => acc + parseInt(curr.count), 0)}</p>
+                    <div className="space-y-6 animate-in fade-in duration-300">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
+                                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Total Records</h3>
+                                <p className="text-3xl font-bold text-gray-900">{trends.reduce((acc, curr) => acc + parseInt(curr.count), 0)}</p>
                             </div>
-                            <div className="card">
-                                <h3>Flagged Incidents</h3>
-                                <p className="stat-value warning">{flagged.length}</p>
+                            <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm border-l-4 border-l-amber-500">
+                                <h3 className="text-xs font-bold text-amber-600 uppercase tracking-widest mb-1">Flagged Incidents</h3>
+                                <p className="text-3xl font-bold text-amber-600">{flagged.length}</p>
                             </div>
-                            <div className="card">
-                                <h3>At-Risk Students</h3>
-                                <p className="stat-value critical">{atRisk.length}</p>
+                            <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm border-l-4 border-l-red-500">
+                                <h3 className="text-xs font-bold text-red-600 uppercase tracking-widest mb-1">At-Risk Students</h3>
+                                <p className="text-3xl font-bold text-red-600">{atRisk.length}</p>
                             </div>
-                            <div className="card">
-                                <h3>Pending Excuses</h3>
-                                <p className="stat-value">{excuses.filter(e => e.status === 'pending').length}</p>
+                            <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
+                                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Pending Excuses</h3>
+                                <p className="text-3xl font-bold text-indigo-600">{excuses.filter(e => e.status === 'pending').length}</p>
                             </div>
                         </div>
 
-                        <div className="chart-section">
-                            <h3>Attendance Volume (7 Days)</h3>
-                            <div className="chart-container">
-                                <ResponsiveContainer width="100%" height={300}>
+                        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                            <h3 className="text-lg font-bold text-gray-900 mb-6">Attendance Volume (7 Days)</h3>
+                            <div className="h-[300px]">
+                                <ResponsiveContainer width="100%" height="100%">
                                     <AreaChart data={trends}>
-                                        <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis dataKey="date" />
-                                        <YAxis />
-                                        <Tooltip />
-                                        <Area type="monotone" dataKey="count" stroke="#4f46e5" fill="#c7d2fe" />
+                                        <defs>
+                                            <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.8} />
+                                                <stop offset="95%" stopColor="#4f46e5" stopOpacity={0} />
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                                        <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#6b7280' }} dy={10} />
+                                        <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6b7280' }} />
+                                        <Tooltip
+                                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                                            cursor={{ stroke: '#4f46e5', strokeWidth: 2 }}
+                                        />
+                                        <Area type="monotone" dataKey="count" stroke="#4f46e5" fillOpacity={1} fill="url(#colorCount)" strokeWidth={3} />
                                     </AreaChart>
                                 </ResponsiveContainer>
                             </div>
@@ -165,215 +232,196 @@ export default function AttendanceAnalytics() {
                 )}
 
                 {activeTab === 'at-risk' && (
-                    <div className="tab-content">
-                        <h3>Students with High Absence Rate (&gt;20%)</h3>
-                        <table className="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Student</th>
-                                    <th>Department</th>
-                                    <th>Total Sessions</th>
-                                    <th>Absent</th>
-                                    <th>Rate</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {atRisk.map(student => (
-                                    <tr key={student.id}>
-                                        <td className="user-cell">
-                                            <div className="avatar-placeholder">{student.name[0]}</div>
-                                            <div>
-                                                <div className="font-bold">{student.name}</div>
-                                                <div className="text-small">{student.email}</div>
-                                            </div>
-                                        </td>
-                                        <td>{student.department}</td>
-                                        <td>{student.total_sessions}</td>
-                                        <td>{student.absent_sessions}</td>
-                                        <td>{student.absence_rate}%</td>
-                                        <td>
-                                            <span className={`badge ${student.risk_level === 'Critical' ? 'critical' : 'warning'}`}>
-                                                {student.risk_level}
-                                            </span>
-                                        </td>
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-in fade-in duration-300">
+                        <div className="p-6 border-b border-gray-100 bg-red-50/50">
+                            <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                                <AlertTriangle className="h-5 w-5 text-red-600" />
+                                Students with High Absence Rate (&gt;20%)
+                            </h3>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left">
+                                <thead className="bg-gray-50 text-gray-600 text-xs font-semibold uppercase tracking-wider">
+                                    <tr>
+                                        <th className="px-6 py-4">Student</th>
+                                        <th className="px-6 py-4">Department</th>
+                                        <th className="px-6 py-4 text-center">Sessions</th>
+                                        <th className="px-6 py-4 text-center">Absent</th>
+                                        <th className="px-6 py-4 text-center">Rate</th>
+                                        <th className="px-6 py-4">Status</th>
                                     </tr>
-                                ))}
-                                {atRisk.length === 0 && <tr><td colSpan="6" className="text-center">No at-risk students found.</td></tr>}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {atRisk.length > 0 ? atRisk.map(student => (
+                                        <tr key={student.id} className="hover:bg-gray-50 transition-colors">
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-xs">
+                                                        {student.name[0]}
+                                                    </div>
+                                                    <div>
+                                                        <div className="font-semibold text-gray-900">{student.name}</div>
+                                                        <div className="text-xs text-gray-500">{student.email}</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-sm text-gray-600">{student.department}</td>
+                                            <td className="px-6 py-4 text-sm text-center text-gray-900">{student.total_sessions}</td>
+                                            <td className="px-6 py-4 text-sm text-center text-red-600 font-medium">{student.absent_sessions}</td>
+                                            <td className="px-6 py-4 text-sm text-center font-bold text-red-600">{student.absence_rate}%</td>
+                                            <td className="px-6 py-4">
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${student.risk_level === 'Critical'
+                                                        ? 'bg-red-100 text-red-800'
+                                                        : 'bg-amber-100 text-amber-800'
+                                                    }`}>
+                                                    {student.risk_level}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    )) : (
+                                        <tr><td colSpan="6" className="px-6 py-12 text-center text-gray-500">No at-risk students found.</td></tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 )}
 
                 {activeTab === 'flagged' && (
-                    <div className="tab-content">
-                        <h3>🚩 Potential Spoofing & Fraud Attempts</h3>
-                        <p className="subtitle">Records flagged via GPS spoofing, Haversine distance failure, or IP mismatch.</p>
-
-                        <table className="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Time</th>
-                                    <th>Student</th>
-                                    <th>Course</th>
-                                    <th>Violation Type</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {flagged.map(record => (
-                                    <tr key={record.id}>
-                                        <td>{new Date(record.session.created_at).toLocaleString()}</td>
-                                        <td>{record.student.user.first_name} {record.student.user.last_name}</td>
-                                        <td>{record.session.section.course.code}</td>
-                                        <td>
-                                            <span className="badge critical">GPS Distance Fail</span>
-                                        </td>
-                                        <td>
-                                            <button className="btn-small">Review</button>
-                                        </td>
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-in fade-in duration-300">
+                        <div className="p-6 border-b border-gray-100 bg-amber-50/50">
+                            <div>
+                                <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                                    <Flag className="h-5 w-5 text-amber-600" />
+                                    Potential Spoofing & Fraud Attempts
+                                </h3>
+                                <p className="text-sm text-gray-500 mt-1">Records flagged via GPS spoofing, Haversine distance failure, or IP mismatch.</p>
+                            </div>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left">
+                                <thead className="bg-gray-50 text-gray-600 text-xs font-semibold uppercase tracking-wider">
+                                    <tr>
+                                        <th className="px-6 py-4">Time</th>
+                                        <th className="px-6 py-4">Student</th>
+                                        <th className="px-6 py-4">Course</th>
+                                        <th className="px-6 py-4">Violation Type</th>
+                                        <th className="px-6 py-4 text-right">Action</th>
                                     </tr>
-                                ))}
-                                {flagged.length === 0 && <tr><td colSpan="5" className="text-center">No flagged records found. System secure.</td></tr>}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {flagged.length > 0 ? flagged.map(record => (
+                                        <tr key={record.id} className="hover:bg-gray-50 transition-colors">
+                                            <td className="px-6 py-4 text-sm text-gray-600">
+                                                {new Date(record.session.created_at).toLocaleString()}
+                                            </td>
+                                            <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                                                {record.student.user.first_name} {record.student.user.last_name}
+                                            </td>
+                                            <td className="px-6 py-4 text-sm text-gray-600">
+                                                {record.session.section.course.code}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                                    GPS Distance Fail
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <button className="text-indigo-600 hover:text-indigo-900 text-sm font-medium">Review</button>
+                                            </td>
+                                        </tr>
+                                    )) : (
+                                        <tr><td colSpan="5" className="px-6 py-12 text-center text-gray-500">No flagged records found. System secure.</td></tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 )}
 
                 {activeTab === 'excuses' && (
-                    <div className="tab-content">
-                        <h3>Medical & Emergency Excuses</h3>
-                        <table className="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Student</th>
-                                    <th>Session/Course</th>
-                                    <th>Reason</th>
-                                    <th>Document</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {excuses.map(ex => (
-                                    <tr key={ex.id}>
-                                        <td>{new Date(ex.created_at).toLocaleDateString()}</td>
-                                        <td>
-                                            <div className="font-bold">{ex.student?.user?.first_name} {ex.student?.user?.last_name}</div>
-                                            <div className="text-small">{ex.student?.user?.email}</div>
-                                        </td>
-                                        <td>
-                                            <div>{ex.session?.section?.course?.code}</div>
-                                            <div className="text-small">{new Date(ex.session?.start_time).toLocaleString()}</div>
-                                        </td>
-                                        <td>{ex.reason}</td>
-                                        <td>
-                                            {ex.document_url ? (
-                                                <a href={`${process.env.NEXT_PUBLIC_API_URL}${ex.document_url}`} target="_blank" rel="noopener noreferrer" className="btn-link">View Doc</a>
-                                            ) : 'None'}
-                                        </td>
-                                        <td>
-                                            <span className={`badge ${ex.status === 'approved' ? 'success' : ex.status === 'rejected' ? 'critical' : 'warning'}`}>
-                                                {ex.status}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            {ex.status === 'pending' && (
-                                                <div style={{ display: 'flex', gap: '5px' }}>
-                                                    <button className="btn-small success" onClick={() => handleExcuseAction(ex.id, 'approved')}>✓</button>
-                                                    <button className="btn-small critical" onClick={() => handleExcuseAction(ex.id, 'rejected')}>✗</button>
-                                                </div>
-                                            )}
-                                        </td>
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-in fade-in duration-300">
+                        <div className="p-6 border-b border-gray-100 bg-indigo-50/50">
+                            <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                                <FileText className="h-5 w-5 text-indigo-600" />
+                                Medical & Emergency Excuses
+                            </h3>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left">
+                                <thead className="bg-gray-50 text-gray-600 text-xs font-semibold uppercase tracking-wider">
+                                    <tr>
+                                        <th className="px-6 py-4">Date</th>
+                                        <th className="px-6 py-4">Student</th>
+                                        <th className="px-6 py-4">Session/Course</th>
+                                        <th className="px-6 py-4">Reason</th>
+                                        <th className="px-6 py-4">Document</th>
+                                        <th className="px-6 py-4">Status</th>
+                                        <th className="px-6 py-4 text-right">Actions</th>
                                     </tr>
-                                ))}
-                                {excuses.length === 0 && <tr><td colSpan="7" className="text-center">No excuse requests found.</td></tr>}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {excuses.length > 0 ? excuses.map(ex => (
+                                        <tr key={ex.id} className="hover:bg-gray-50 transition-colors">
+                                            <td className="px-6 py-4 text-sm text-gray-600">
+                                                {new Date(ex.created_at).toLocaleDateString()}
+                                            </td>
+                                            <td className="px-6 py-4 text-sm">
+                                                <div className="font-medium text-gray-900">{ex.student?.user?.first_name} {ex.student?.user?.last_name}</div>
+                                                <div className="text-xs text-gray-500">{ex.student?.user?.email}</div>
+                                            </td>
+                                            <td className="px-6 py-4 text-sm text-gray-600">
+                                                <div className="font-medium">{ex.session?.section?.course?.code}</div>
+                                                <div className="text-xs">{new Date(ex.session?.start_time).toLocaleString()}</div>
+                                            </td>
+                                            <td className="px-6 py-4 text-sm text-gray-600 truncate max-w-xs" title={ex.reason}>
+                                                {ex.reason}
+                                            </td>
+                                            <td className="px-6 py-4 text-sm">
+                                                {ex.document_url ? (
+                                                    <a href={`${process.env.NEXT_PUBLIC_API_URL}${ex.document_url}`} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-900 font-medium flex items-center gap-1">
+                                                        <Eye className="h-3 w-3" /> View
+                                                    </a>
+                                                ) : <span className="text-gray-400">None</span>}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${ex.status === 'approved' ? 'bg-green-100 text-green-800' :
+                                                        ex.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                                            'bg-amber-100 text-amber-800'
+                                                    }`}>
+                                                    {ex.status}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                {ex.status === 'pending' && (
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        <button
+                                                            onClick={() => handleExcuseAction(ex.id, 'approved')}
+                                                            className="p-1 rounded-full bg-green-100 text-green-600 hover:bg-green-200 transition-colors"
+                                                            title="Approve"
+                                                        >
+                                                            <Check className="h-4 w-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleExcuseAction(ex.id, 'rejected')}
+                                                            className="p-1 rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition-colors"
+                                                            title="Reject"
+                                                        >
+                                                            <X className="h-4 w-4" />
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    )) : (
+                                        <tr><td colSpan="7" className="px-6 py-12 text-center text-gray-500">No excuse requests found.</td></tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 )}
             </div>
-
-            <style jsx>{`
-                .page-container { min-height: 100vh; background: #f3f4f6; padding-bottom: 2rem; }
-                .content { max-width: 1200px; margin: 0 auto; padding: 2rem; }
-                
-                .dashboard-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
-                .dashboard-header h1 { font-size: 1.8rem; color: #111827; }
-                
-                .btn-export { background: white; border: 1px solid #d1d5db; padding: 8px 16px; border-radius: 6px; margin-left: 10px; cursor: pointer; transition: 0.2s; }
-                .btn-export:hover { background: #f9fafb; border-color: #9ca3af; }
-
-                .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; }
-                .tabs button { 
-                    padding: 8px 16px; 
-                    background: none; 
-                    border: none; 
-                    font-weight: 500; 
-                    color: #6b7280; 
-                    cursor: pointer; 
-                    border-radius: 6px;
-                }
-                .tabs button.active { background: #e0e7ff; color: #4338ca; }
-                .tabs button:hover:not(.active) { background: #f3f4f6; }
-
-                .tab-content { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); animation: fadeIn 0.3s ease; }
-
-                .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
-                .card { background: #f9fafb; padding: 20px; border-radius: 8px; border: 1px solid #e5e7eb; }
-                .card h3 { margin: 0 0 10px 0; font-size: 0.9rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; }
-                .stat-value { font-size: 2rem; font-weight: 700; margin: 0; color: #111827; }
-                .stat-value.warning { color: #d97706; }
-                .stat-value.critical { color: #dc2626; }
-
-                .data-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-                .data-table th { text-align: left; padding: 12px; background: #f9fafb; border-bottom: 2px solid #e5e7eb; color: #6b7280; }
-                .data-table td { padding: 12px; border-bottom: 1px solid #e5e7eb; vertical-align: middle; }
-                
-                .user-cell { display: flex; align-items: center; gap: 10px; }
-                .avatar-placeholder { width: 32px; height: 32px; border-radius: 50%; background: #6366f1; color: white; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; }
-                .font-bold { font-weight: 600; }
-                .text-small { font-size: 0.8rem; color: #6b7280; }
-
-                .badge { padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; }
-                .badge.warning { background: #fef3c7; color: #92400e; }
-                .badge.critical { background: #fee2e2; color: #991b1b; }
-                .badge.success { background: #d1fae5; color: #065f46; }
-                
-                .btn-small { padding: 4px 8px; border: none; border-radius: 4px; cursor: pointer; color: white; transition: 0.2s; }
-                .btn-small.success { background: #10b981; }
-                .btn-small.success:hover { background: #059669; }
-                .btn-small.critical { background: #ef4444; }
-                .btn-small.critical:hover { background: #dc2626; }
-                .btn-link { color: #4f46e5; text-decoration: underline; font-size: 0.9rem; }
-                
-                .text-center { text-align: center; color: #6b7280; padding: 20px; }
-                .subtitle { color: #6b7280; margin-bottom: 20px; }
-                
-                @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-                @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-
-                .toast {
-                    position: fixed;
-                    top: 20px;
-                    right: 20px;
-                    background: white;
-                    padding: 15px 20px;
-                    border-radius: 8px;
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-                    display: flex;
-                    align-items: center;
-                    gap: 15px;
-                    z-index: 1000;
-                    animation: slideIn 0.3s ease;
-                    border-left: 4px solid #3b82f6;
-                }
-                .toast.critical { border-left-color: #ef4444; }
-                .toast.success { border-left-color: #10b981; }
-                .toast button { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #9ca3af; }
-                .toast button:hover { color: #111827; }
-            `}</style>
-        </div>
+        </DashboardLayout>
     );
 }

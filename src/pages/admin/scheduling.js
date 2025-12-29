@@ -1,13 +1,20 @@
-/**
- * Admin Schedule Generator Page
- * 
- * Generate course schedules using CSP algorithm.
- */
-
 import { useState, useEffect, useContext } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import Navbar from '../../components/Navbar';
+import {
+    Calendar,
+    Settings,
+    Play,
+    Trash2,
+    AlertTriangle,
+    CheckCircle,
+    Clock,
+    Layout,
+    Users,
+    Info,
+    RefreshCw
+} from 'lucide-react';
+import DashboardLayout from '../../components/layout/DashboardLayout';
 import { AuthContext } from '../../context/AuthContext';
 import api from '../../config/api';
 
@@ -34,7 +41,7 @@ export default function SchedulingPage() {
             return;
         }
         fetchSchedulingInfo();
-    }, [user, authLoading]);
+    }, [user, authLoading, router]);
 
     const fetchSchedulingInfo = async () => {
         try {
@@ -107,584 +114,261 @@ export default function SchedulingPage() {
         }
     };
 
-    if (authLoading) {
-        return (
-            <>
-                <Head><title>Schedule Generator - Admin</title></Head>
-                <Navbar />
-                <div style={styles.loadingContainer}>
-                    <div style={styles.spinner}></div>
-                    <p>Loading...</p>
-                </div>
-            </>
-        );
-    }
+    if (authLoading || !user || user.role !== 'admin') return null;
 
     return (
-        <>
+        <DashboardLayout user={user}>
             <Head>
-                <title>Schedule Generator - Admin Portal</title>
+                <title>Schedule Generator | Admin | Smart Campus</title>
             </Head>
-            <Navbar />
 
-            <div style={styles.container}>
+            <div className="max-w-4xl mx-auto space-y-6 animate-in slide-in-from-bottom-2 duration-500">
                 {/* Header */}
-                <div style={styles.header}>
+                <div className="flex items-center justify-between">
                     <div>
-                        <h1 style={styles.title}>🗓️ Schedule Generator</h1>
-                        <p style={styles.subtitle}>Generate course schedules using CSP algorithm</p>
+                        <h1 className="text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
+                            <Calendar className="h-6 w-6 text-indigo-600" />
+                            Schedule Generator
+                        </h1>
+                        <p className="mt-1 text-gray-500">Generate optimized course schedules using CSP algorithm</p>
                     </div>
                 </div>
 
                 {/* Info Cards */}
                 {schedulingInfo && (
-                    <div style={styles.infoGrid}>
-                        <div style={styles.infoCard}>
-                            <span style={styles.infoValue}>{schedulingInfo.totalSections || 0}</span>
-                            <span style={styles.infoLabel}>Sections</span>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm text-center">
+                            <span className="block text-2xl font-bold text-indigo-600">{schedulingInfo.totalSections || 0}</span>
+                            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Sections</span>
                         </div>
-                        <div style={styles.infoCard}>
-                            <span style={styles.infoValue}>{schedulingInfo.totalClassrooms || 0}</span>
-                            <span style={styles.infoLabel}>Classrooms</span>
+                        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm text-center">
+                            <span className="block text-2xl font-bold text-indigo-600">{schedulingInfo.totalClassrooms || 0}</span>
+                            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Classrooms</span>
                         </div>
-                        <div style={styles.infoCard}>
-                            <span style={styles.infoValue}>{schedulingInfo.totalInstructors || 0}</span>
-                            <span style={styles.infoLabel}>Instructors</span>
+                        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm text-center">
+                            <span className="block text-2xl font-bold text-indigo-600">{schedulingInfo.totalInstructors || 0}</span>
+                            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Instructors</span>
                         </div>
-                        <div style={styles.infoCard}>
-                            <span style={styles.infoValue}>{schedulingInfo.timeSlots || 0}</span>
-                            <span style={styles.infoLabel}>Time Slots</span>
+                        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm text-center">
+                            <span className="block text-2xl font-bold text-indigo-600">{schedulingInfo.timeSlots || 0}</span>
+                            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Time Slots</span>
                         </div>
                     </div>
                 )}
 
-                {/* Generator Form */}
-                <div style={styles.formCard}>
-                    <h2 style={styles.formTitle}>Configuration</h2>
-
-                    <div style={styles.formRow}>
-                        <div style={styles.formGroup}>
-                            <label style={styles.formLabel}>Semester</label>
-                            <select
-                                value={semester}
-                                onChange={(e) => setSemester(e.target.value)}
-                                style={styles.select}
-                                disabled={generating}
-                            >
-                                <option value="Fall">Fall</option>
-                                <option value="Spring">Spring</option>
-                                <option value="Summer">Summer</option>
-                            </select>
+                {/* Generator Configuration */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div className="p-6 border-b border-gray-100 bg-gray-50/50">
+                        <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                            <Settings className="h-5 w-5 text-gray-500" />
+                            Configuration
+                        </h2>
+                    </div>
+                    <div className="p-6 space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Semester</label>
+                                <select
+                                    value={semester}
+                                    onChange={(e) => setSemester(e.target.value)}
+                                    disabled={generating}
+                                    className="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                >
+                                    <option value="Fall">Fall</option>
+                                    <option value="Spring">Spring</option>
+                                    <option value="Summer">Summer</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Year</label>
+                                <select
+                                    value={year}
+                                    onChange={(e) => setYear(parseInt(e.target.value))}
+                                    disabled={generating}
+                                    className="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                >
+                                    {[2024, 2025, 2026, 2027].map(y => (
+                                        <option key={y} value={y}>{y}</option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
-                        <div style={styles.formGroup}>
-                            <label style={styles.formLabel}>Year</label>
-                            <select
-                                value={year}
-                                onChange={(e) => setYear(parseInt(e.target.value))}
-                                style={styles.select}
-                                disabled={generating}
-                            >
-                                {[2024, 2025, 2026, 2027].map(y => (
-                                    <option key={y} value={y}>{y}</option>
-                                ))}
-                            </select>
+
+                        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
+                            <label className="flex items-center gap-3 cursor-pointer">
+                                <div className="relative inline-flex items-center">
+                                    <input
+                                        type="checkbox"
+                                        checked={previewOnly}
+                                        onChange={(e) => setPreviewOnly(e.target.checked)}
+                                        disabled={generating}
+                                        className="sr-only peer"
+                                    />
+                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                </div>
+                                <span className="font-medium text-gray-900">Preview Only Mode</span>
+                            </label>
+                            <span className="text-sm text-gray-500 hidden sm:inline-block">
+                                {previewOnly ? 'Running dry run without saving changes' : 'Generated schedule will be saved to database'}
+                            </span>
                         </div>
-                    </div>
 
-                    <div style={styles.toggleRow}>
-                        <label style={styles.toggleLabel}>
-                            <input
-                                type="checkbox"
-                                checked={previewOnly}
-                                onChange={(e) => setPreviewOnly(e.target.checked)}
-                                style={styles.checkbox}
+                        {/* Constraints Info */}
+                        <div className="bg-indigo-50 rounded-xl p-4 border border-indigo-100">
+                            <h3 className="text-sm font-bold text-indigo-900 mb-2 flex items-center gap-2">
+                                <div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div>
+                                Active Constraints
+                            </h3>
+                            <ul className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-indigo-700">
+                                <li className="flex items-center gap-2">
+                                    <CheckCircle className="h-4 w-4 text-indigo-500" /> No instructor double-booking
+                                </li>
+                                <li className="flex items-center gap-2">
+                                    <CheckCircle className="h-4 w-4 text-indigo-500" /> No classroom conflicts
+                                </li>
+                                <li className="flex items-center gap-2">
+                                    <CheckCircle className="h-4 w-4 text-indigo-500" /> Respect classroom capacity
+                                </li>
+                                <li className="flex items-center gap-2">
+                                    <CheckCircle className="h-4 w-4 text-indigo-500" /> Lab sections in lab rooms
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div className="flex gap-3 pt-2">
+                            <button
+                                onClick={handleGenerate}
                                 disabled={generating}
-                            />
-                            <span style={styles.toggleText}>Preview Only</span>
-                        </label>
-                        <span style={styles.toggleHint}>
-                            {previewOnly
-                                ? 'Dry run - results will not be saved'
-                                : 'Results will be saved to database'}
-                        </span>
-                    </div>
-
-                    {/* Constraints Info */}
-                    <div style={styles.constraintsBox}>
-                        <h3 style={styles.constraintsTitle}>📋 Scheduling Constraints</h3>
-                        <ul style={styles.constraintsList}>
-                            <li>No instructor double-booking</li>
-                            <li>No classroom conflicts</li>
-                            <li>Respect classroom capacity</li>
-                            <li>Honor instructor time preferences</li>
-                            <li>Lab sections in lab rooms</li>
-                        </ul>
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div style={styles.actionRow}>
-                        <button
-                            onClick={handleGenerate}
-                            disabled={generating}
-                            style={{
-                                ...styles.generateBtn,
-                                opacity: generating ? 0.6 : 1
-                            }}
-                        >
-                            {generating ? 'Generating...' : '🚀 Generate Schedule'}
-                        </button>
-                        <button
-                            onClick={handleClearSchedule}
-                            disabled={generating}
-                            style={styles.clearBtn}
-                        >
-                            🗑️ Clear Schedule
-                        </button>
+                                className={`flex-1 py-3 px-4 rounded-xl text-white font-bold text-lg shadow-lg shadow-indigo-200 transition-all flex items-center justify-center gap-2 ${generating
+                                        ? 'bg-indigo-400 cursor-not-allowed'
+                                        : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:translate-y-[-1px] hover:shadow-xl'
+                                    }`}
+                            >
+                                {generating ? (
+                                    <>
+                                        <RefreshCw className="h-5 w-5 animate-spin" />
+                                        Generating...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Play className="h-5 w-5 fill-current" />
+                                        Generate Schedule
+                                    </>
+                                )}
+                            </button>
+                            <button
+                                onClick={handleClearSchedule}
+                                disabled={generating}
+                                className="px-4 rounded-xl text-red-600 bg-red-50 hover:bg-red-100 font-medium border border-red-100 transition-colors"
+                                title="Clear Schedule"
+                            >
+                                <Trash2 className="h-5 w-5" />
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                {/* Progress */}
+                {/* Progress Bar */}
                 {generating && (
-                    <div style={styles.progressCard}>
-                        <div style={styles.progressHeader}>
-                            <div style={styles.spinner}></div>
-                            <span>Generating schedule using CSP algorithm...</span>
+                    <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm animate-in fade-in slide-in-from-top-2">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-gray-700">Running CSP Algorithm...</span>
+                            <span className="text-sm font-bold text-indigo-600">{Math.round(progress)}%</span>
                         </div>
-                        <div style={styles.progressBar}>
+                        <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
                             <div
-                                style={{ ...styles.progressFill, width: `${progress}%` }}
+                                className="bg-indigo-600 h-2.5 rounded-full transition-all duration-300 ease-out"
+                                style={{ width: `${progress}%` }}
                             ></div>
                         </div>
-                        <p style={styles.progressText}>
-                            This may take a few minutes depending on the number of sections.
+                        <p className="text-xs text-gray-500 mt-2 text-center">
+                            This process usually takes 5-30 seconds depending on complexity.
                         </p>
                     </div>
                 )}
 
-                {/* Error */}
+                {/* Error Message */}
                 {error && (
-                    <div style={styles.errorCard}>
-                        <span style={styles.errorIcon}>⚠️</span>
+                    <div className="bg-red-50 text-red-700 p-4 rounded-xl border border-red-100 flex items-start gap-3 animate-in shake">
+                        <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
                         <div>
-                            <h3 style={styles.errorTitle}>Generation Failed</h3>
-                            <p style={styles.errorMessage}>{error}</p>
+                            <h3 className="font-bold">Generation Failed</h3>
+                            <p className="text-sm mt-1">{error}</p>
                         </div>
                     </div>
                 )}
 
-                {/* Result */}
+                {/* Results Section */}
                 {result && (
-                    <div style={styles.resultCard}>
-                        <div style={styles.resultHeader}>
-                            <span style={styles.resultIcon}>{result.success ? '✓' : '⚠️'}</span>
-                            <h2 style={styles.resultTitle}>
-                                {result.success ? 'Schedule Generated' : 'Partial Success'}
-                            </h2>
-                        </div>
-
-                        <p style={styles.resultMessage}>{result.message}</p>
-
-                        {/* Statistics */}
-                        {result.statistics && (
-                            <div style={styles.statsGrid}>
-                                <div style={styles.statCard}>
-                                    <span style={styles.statValue}>{result.statistics.scheduled_sections || 0}</span>
-                                    <span style={styles.statLabel}>Assigned</span>
-                                </div>
-                                <div style={styles.statCard}>
-                                    <span style={{ ...styles.statValue, color: result.statistics.unscheduled_sections > 0 ? '#EF4444' : '#10B981' }}>
-                                        {result.statistics.unscheduled_sections || 0}
-                                    </span>
-                                    <span style={styles.statLabel}>Unassigned</span>
-                                </div>
-                                <div style={styles.statCard}>
-                                    <span style={styles.statValue}>{result.statistics.backtrack_count || 0}</span>
-                                    <span style={styles.statLabel}>Backtracks</span>
-                                </div>
-                                <div style={styles.statCard}>
-                                    <span style={styles.statValue}>
-                                        {result.statistics.duration_ms ? `${(result.statistics.duration_ms / 1000).toFixed(1)}s` : '-'}
-                                    </span>
-                                    <span style={styles.statLabel}>Duration</span>
-                                </div>
+                    <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                            <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
+                                <h2 className={`text-lg font-bold flex items-center gap-2 ${result.success ? 'text-green-700' : 'text-amber-600'}`}>
+                                    {result.success ? <CheckCircle className="h-6 w-6" /> : <AlertTriangle className="h-6 w-6" />}
+                                    {result.success ? 'Schedule Generated Successfully' : 'Completed with Conflicts'}
+                                </h2>
                             </div>
-                        )}
 
-                        {/* Unassigned Sections */}
-                        {result.unassigned && result.unassigned.length > 0 && (
-                            <div style={styles.unassignedSection}>
-                                <h3 style={styles.unassignedTitle}>⚠️ Unassigned Sections</h3>
-                                <div style={styles.unassignedList}>
-                                    {result.unassigned.map((item, idx) => (
-                                        <div key={idx} style={styles.unassignedItem}>
-                                            <span>{item.section || item.course_code}</span>
-                                            <span style={styles.unassignedReason}>{item.reason}</span>
+                            <div className="p-6">
+                                <p className="text-gray-600 mb-6">{result.message}</p>
+
+                                {/* Statistics Grid */}
+                                {result.statistics && (
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                                        <div className="bg-green-50 p-4 rounded-xl text-center">
+                                            <span className="block text-2xl font-bold text-green-700">{result.statistics.scheduled_sections || 0}</span>
+                                            <span className="text-xs font-semibold text-green-600 uppercase">Assigned</span>
                                         </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
+                                        <div className={`p-4 rounded-xl text-center ${result.statistics.unscheduled_sections > 0 ? 'bg-red-50' : 'bg-gray-50'}`}>
+                                            <span className={`block text-2xl font-bold ${result.statistics.unscheduled_sections > 0 ? 'text-red-700' : 'text-gray-700'}`}>
+                                                {result.statistics.unscheduled_sections || 0}
+                                            </span>
+                                            <span className={`text-xs font-semibold uppercase ${result.statistics.unscheduled_sections > 0 ? 'text-red-600' : 'text-gray-500'}`}>
+                                                Unassigned
+                                            </span>
+                                        </div>
+                                        <div className="bg-blue-50 p-4 rounded-xl text-center">
+                                            <span className="block text-2xl font-bold text-blue-700">{result.statistics.backtrack_count || 0}</span>
+                                            <span className="text-xs font-semibold text-blue-600 uppercase">Backtracks</span>
+                                        </div>
+                                        <div className="bg-purple-50 p-4 rounded-xl text-center">
+                                            <span className="block text-2xl font-bold text-purple-700">
+                                                {result.statistics.duration_ms ? `${(result.statistics.duration_ms / 1000).toFixed(2)}s` : '-'}
+                                            </span>
+                                            <span className="text-xs font-semibold text-purple-600 uppercase">Duration</span>
+                                        </div>
+                                    </div>
+                                )}
 
-                        {/* Preview Note */}
-                        {previewOnly && result.success && (
-                            <div style={styles.previewNote}>
-                                <p>This is a preview. To save the schedule, uncheck "Preview Only" and generate again.</p>
+                                {/* Unassigned List */}
+                                {result.unassigned && result.unassigned.length > 0 && (
+                                    <div className="bg-amber-50 rounded-xl p-4 border border-amber-100">
+                                        <h3 className="font-bold text-amber-900 mb-3 flex items-center gap-2">
+                                            <AlertTriangle className="h-4 w-4" />
+                                            Unassigned Sections Impact Report
+                                        </h3>
+                                        <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
+                                            {result.unassigned.map((item, idx) => (
+                                                <div key={idx} className="flex items-start justify-between bg-white p-3 rounded-lg border border-amber-100/50 shadow-sm text-sm">
+                                                    <span className="font-semibold text-gray-900">{item.section || item.course_code}</span>
+                                                    <span className="text-amber-700">{item.reason}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {previewOnly && result.success && (
+                                    <div className="mt-6 flex items-center gap-2 text-sm text-indigo-700 bg-indigo-50 p-3 rounded-lg">
+                                        <Info className="h-4 w-4" />
+                                        This is a preview. Uncheck "Preview Only" and generate again to save changes.
+                                    </div>
+                                )}
                             </div>
-                        )}
+                        </div>
                     </div>
                 )}
-
-                {/* Algorithm Info */}
-                <div style={styles.infoSection}>
-                    <h3 style={styles.infoTitle}>ℹ️ About the Algorithm</h3>
-                    <p style={styles.infoText}>
-                        The schedule generator uses a <strong>Constraint Satisfaction Problem (CSP)</strong> approach
-                        with backtracking and heuristics to find optimal room and time assignments for all course sections.
-                    </p>
-                    <ul style={styles.infoList}>
-                        <li><strong>MRV Heuristic:</strong> Most Restricted Variable - assigns hardest sections first</li>
-                        <li><strong>LCV Heuristic:</strong> Least Constraining Value - picks slots that leave most options</li>
-                        <li><strong>Arc Consistency:</strong> Prunes impossible assignments early</li>
-                    </ul>
-                </div>
             </div>
-
-            <style jsx global>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
-        </>
+        </DashboardLayout>
     );
-}
-
-const styles = {
-    container: {
-        maxWidth: '900px',
-        margin: '0 auto',
-        padding: '24px',
-        fontFamily: 'system-ui, -apple-system, sans-serif'
-    },
-    loadingContainer: {
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '60vh',
-        color: '#6B7280'
-    },
-    spinner: {
-        width: '40px',
-        height: '40px',
-        border: '3px solid #E5E7EB',
-        borderTop: '3px solid #8B5CF6',
-        borderRadius: '50%',
-        animation: 'spin 1s linear infinite',
-        marginBottom: '16px'
-    },
-    header: {
-        marginBottom: '24px'
-    },
-    title: {
-        fontSize: '28px',
-        fontWeight: '700',
-        color: '#111827',
-        margin: 0
-    },
-    subtitle: {
-        fontSize: '16px',
-        color: '#6B7280',
-        marginTop: '4px'
-    },
-    infoGrid: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(4, 1fr)',
-        gap: '16px',
-        marginBottom: '24px'
-    },
-    infoCard: {
-        backgroundColor: 'white',
-        borderRadius: '12px',
-        padding: '20px',
-        textAlign: 'center',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
-    },
-    infoValue: {
-        display: 'block',
-        fontSize: '28px',
-        fontWeight: '700',
-        color: '#8B5CF6'
-    },
-    infoLabel: {
-        fontSize: '13px',
-        color: '#6B7280'
-    },
-    formCard: {
-        backgroundColor: 'white',
-        borderRadius: '16px',
-        padding: '28px',
-        boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
-        marginBottom: '24px'
-    },
-    formTitle: {
-        fontSize: '18px',
-        fontWeight: '600',
-        marginBottom: '20px',
-        color: '#111827'
-    },
-    formRow: {
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: '16px',
-        marginBottom: '20px'
-    },
-    formGroup: {},
-    formLabel: {
-        display: 'block',
-        fontSize: '14px',
-        fontWeight: '500',
-        color: '#374151',
-        marginBottom: '8px'
-    },
-    select: {
-        width: '100%',
-        padding: '12px 16px',
-        border: '1px solid #E5E7EB',
-        borderRadius: '10px',
-        fontSize: '15px',
-        backgroundColor: 'white'
-    },
-    toggleRow: {
-        marginBottom: '20px'
-    },
-    toggleLabel: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '10px',
-        cursor: 'pointer'
-    },
-    checkbox: {
-        width: '18px',
-        height: '18px',
-        accentColor: '#8B5CF6'
-    },
-    toggleText: {
-        fontSize: '15px',
-        fontWeight: '500',
-        color: '#374151'
-    },
-    toggleHint: {
-        display: 'block',
-        fontSize: '13px',
-        color: '#9CA3AF',
-        marginTop: '4px',
-        marginLeft: '28px'
-    },
-    constraintsBox: {
-        backgroundColor: '#F9FAFB',
-        borderRadius: '12px',
-        padding: '16px 20px',
-        marginBottom: '24px'
-    },
-    constraintsTitle: {
-        fontSize: '14px',
-        fontWeight: '600',
-        color: '#374151',
-        marginBottom: '12px'
-    },
-    constraintsList: {
-        margin: 0,
-        paddingLeft: '20px',
-        fontSize: '13px',
-        color: '#6B7280',
-        lineHeight: '1.8'
-    },
-    actionRow: {
-        display: 'flex',
-        gap: '12px'
-    },
-    generateBtn: {
-        flex: 1,
-        padding: '16px',
-        backgroundColor: '#8B5CF6',
-        color: 'white',
-        border: 'none',
-        borderRadius: '12px',
-        fontSize: '16px',
-        fontWeight: '600',
-        cursor: 'pointer'
-    },
-    clearBtn: {
-        padding: '16px 24px',
-        backgroundColor: '#FEF2F2',
-        color: '#DC2626',
-        border: 'none',
-        borderRadius: '12px',
-        fontSize: '14px',
-        fontWeight: '500',
-        cursor: 'pointer'
-    },
-    progressCard: {
-        backgroundColor: 'white',
-        borderRadius: '16px',
-        padding: '28px',
-        boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
-        marginBottom: '24px'
-    },
-    progressHeader: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '16px',
-        marginBottom: '20px'
-    },
-    progressBar: {
-        height: '8px',
-        backgroundColor: '#E5E7EB',
-        borderRadius: '4px',
-        overflow: 'hidden',
-        marginBottom: '12px'
-    },
-    progressFill: {
-        height: '100%',
-        backgroundColor: '#8B5CF6',
-        borderRadius: '4px',
-        transition: 'width 0.3s'
-    },
-    progressText: {
-        fontSize: '13px',
-        color: '#6B7280'
-    },
-    errorCard: {
-        display: 'flex',
-        gap: '16px',
-        backgroundColor: '#FEF2F2',
-        borderRadius: '16px',
-        padding: '20px',
-        marginBottom: '24px'
-    },
-    errorIcon: {
-        fontSize: '32px'
-    },
-    errorTitle: {
-        fontSize: '16px',
-        fontWeight: '600',
-        color: '#991B1B',
-        marginBottom: '4px'
-    },
-    errorMessage: {
-        fontSize: '14px',
-        color: '#DC2626'
-    },
-    resultCard: {
-        backgroundColor: 'white',
-        borderRadius: '16px',
-        padding: '28px',
-        boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
-        marginBottom: '24px'
-    },
-    resultHeader: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px',
-        marginBottom: '12px'
-    },
-    resultIcon: {
-        fontSize: '32px'
-    },
-    resultTitle: {
-        fontSize: '20px',
-        fontWeight: '700',
-        color: '#111827'
-    },
-    resultMessage: {
-        fontSize: '15px',
-        color: '#6B7280',
-        marginBottom: '24px'
-    },
-    statsGrid: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(4, 1fr)',
-        gap: '12px',
-        marginBottom: '24px'
-    },
-    statCard: {
-        backgroundColor: '#F9FAFB',
-        borderRadius: '10px',
-        padding: '16px',
-        textAlign: 'center'
-    },
-    statValue: {
-        display: 'block',
-        fontSize: '24px',
-        fontWeight: '700',
-        color: '#10B981'
-    },
-    statLabel: {
-        fontSize: '12px',
-        color: '#6B7280'
-    },
-    unassignedSection: {
-        marginTop: '24px',
-        padding: '16px',
-        backgroundColor: '#FEF3C7',
-        borderRadius: '12px'
-    },
-    unassignedTitle: {
-        fontSize: '14px',
-        fontWeight: '600',
-        color: '#92400E',
-        marginBottom: '12px'
-    },
-    unassignedList: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '8px'
-    },
-    unassignedItem: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        fontSize: '13px',
-        color: '#78350F'
-    },
-    unassignedReason: {
-        color: '#92400E'
-    },
-    previewNote: {
-        marginTop: '20px',
-        padding: '16px',
-        backgroundColor: '#EFF6FF',
-        borderRadius: '10px',
-        fontSize: '14px',
-        color: '#1E40AF'
-    },
-    infoSection: {
-        backgroundColor: '#F9FAFB',
-        borderRadius: '16px',
-        padding: '24px'
-    },
-    infoTitle: {
-        fontSize: '16px',
-        fontWeight: '600',
-        marginBottom: '12px',
-        color: '#111827'
-    },
-    infoText: {
-        fontSize: '14px',
-        lineHeight: '1.6',
-        color: '#4B5563',
-        marginBottom: '16px'
-    },
-    infoList: {
-        margin: 0,
-        paddingLeft: '20px',
-        fontSize: '13px',
-        color: '#6B7280',
-        lineHeight: '1.8'
-    }
-};
-
-// Force SSR to prevent static generation errors
-export async function getServerSideProps() {
-    return { props: {} };
 }
