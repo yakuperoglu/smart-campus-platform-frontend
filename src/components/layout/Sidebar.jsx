@@ -25,6 +25,7 @@ export default function Sidebar({ user, collapsed, setCollapsed, onLogout }) {
         { icon: BookOpen, label: 'Grades', href: '/grades', roles: ['student'] },
         { icon: BookOpen, label: 'My Excuses', href: '/my-excuses', roles: ['student'] },
         { icon: MapPin, label: 'Open Session', href: '/attendance-open', roles: ['faculty'] },
+        { icon: BookOpen, label: 'Grades', href: '/faculty/grades', roles: ['faculty'] },
         { icon: BookOpen, label: 'Excuse Requests', href: '/excuse-management', roles: ['faculty'] },
         { icon: Utensils, label: 'Meals', href: '/meals', roles: ['all'] },
         { icon: Calendar, label: 'Events', href: '/events', roles: ['all'] },

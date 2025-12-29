@@ -43,8 +43,14 @@ export default function EventsIndexPage() {
         try {
             setLoading(true);
             const [eventsRes, clubsRes] = await Promise.all([
-                api.get('/events').catch(() => ({ data: { data: [] } })),
-                api.get('/clubs').catch(() => ({ data: { data: [] } }))
+                api.get('/events').catch(err => {
+                    console.error('Events fetch failed:', err);
+                    return { data: { data: [] } };
+                }),
+                api.get('/clubs').catch(err => {
+                    console.error('Clubs fetch failed:', err);
+                    return { data: { data: [] } };
+                })
             ]);
 
             const eventsData = eventsRes.data.data;

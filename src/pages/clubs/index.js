@@ -59,7 +59,8 @@ export default function ClubsPage() {
             const params = selectedCategory !== 'all' ? `?category=${selectedCategory}` : '';
             const response = await api.get(`/clubs${params}`);
             if (response.data.success) {
-                setClubs(response.data.data.clubs || []);
+                // Controller returns { data: [clubs] } not { data: { clubs: [] } }
+                setClubs(Array.isArray(response.data.data) ? response.data.data : []);
             }
         } catch (error) {
             console.error('Error fetching clubs:', error);
@@ -144,8 +145,8 @@ export default function ClubsPage() {
                 <button
                     onClick={() => setActiveTab('all')}
                     className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${activeTab === 'all'
-                            ? 'bg-slate-900 text-white'
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        ? 'bg-slate-900 text-white'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                         }`}
                 >
                     All Clubs
@@ -154,8 +155,8 @@ export default function ClubsPage() {
                     <button
                         onClick={() => setActiveTab('my')}
                         className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${activeTab === 'my'
-                                ? 'bg-slate-900 text-white'
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            ? 'bg-slate-900 text-white'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                             }`}
                     >
                         My Clubs ({myClubs.length})
@@ -171,8 +172,8 @@ export default function ClubsPage() {
                             key={cat}
                             onClick={() => setSelectedCategory(cat)}
                             className={`px-4 py-2 rounded-full text-sm font-medium transition-all capitalize ${selectedCategory === cat
-                                    ? 'bg-blue-600 text-white'
-                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                 }`}
                         >
                             {cat === 'all' ? '🏛️ All' : `${categoryIcons[cat] || '📁'} ${cat}`}
